@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Crypto Market Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0D12;
+    --surface:#10141B;
+    --surface-2:#171D26;
+    --surface-3:#1E2530;
+    --border:#232B36;
+    --border-soft:#1A212B;
+    --text-primary:#E7EAEE;
+    --text-secondary:#8B93A1;
+    --text-muted:#5C6470;
+    --accent:#5EEAD4;
+    --accent-dim:#1F4A45;
+    --positive:#34D399;
+    --positive-dim:#12291F;
+    --negative:#F87171;
+    --negative-dim:#2E1616;
+    --radius:10px;
+    --mono:'JetBrains Mono', ui-monospace, monospace;
+    --sans:'Inter', -apple-system, sans-serif;
+    --display:'Space Grotesk', var(--sans);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text-primary);
+    font-family:var(--sans);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  ::selection{background:var(--accent-dim); color:var(--accent);}
+
+  .app{
+    max-width:1200px;
+    margin:0 auto;
+    padding:0 20px 60px;
+  }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:20;
+    background:rgba(10,13,18,0.88);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border-soft);
+    padding:18px 0 16px;
+    margin-bottom:22px;
+  }
+
+  .topbar-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .brand-mark{
+    width:30px;height:30px;
+    border-radius:8px;
+    background:linear-gradient(155deg, var(--accent), #2DD4BF);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--display);
+    font-weight:700;
+    color:#062420;
+    font-size:15px;
+    flex-shrink:0;
+  }
+
+  .brand-text h1{
+    font-family:var(--display);
+    font-size:17px;
+    font-weight:600;
+    margin:0;
+    letter-spacing:-0.01em;
+  }
+
+  .brand-text p{
+    margin:0;
+    font-size:11.5px;
+    color:var(--text-muted);
+    font-family:var(--mono);
+  }
+
+  .status-cluster{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    flex-wrap:wrap;
+  }
+
+  .live-pulse{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-secondary);
+    white-space:nowrap;
+  }
+
+  .dot{
+    width:7px;height:7px;
+    border-radius:50%;
+    background:var(--positive);
+    position:relative;
+    flex-shrink:0;
+  }
+  .dot::after{
+    content:'';
+    position:absolute;
+    inset:-5px;
+    border-radius:50%;
+    border:1px solid var(--positive);
+    opacity:0;
+    animation:pulse-ring 2.2s ease-out infinite;
+  }
+  .dot.fetching{background:var(--accent);}
+  .dot.fetching::after{border-color:var(--accent);}
+  @keyframes pulse-ring{
+    0%{opacity:0.7; transform:scale(0.4);}
+    100%{opacity:0; transform:scale(1.6);}
+  }
+
+  .search-wrap{
+    position:relative;
+    width:230px;
+  }
+  .search-wrap input{
+    width:100%;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:9px 12px 9px 34px;
+    color:var(--text-primary);
+    font-size:13.5px;
+    font-family:var(--sans);
+    outline:none;
+    transition:border-color .15s;
+  }
+  .search-wrap input::placeholder{color:var(--text-muted);}
+  .search-wrap input:focus{border-color:var(--accent);}
+  .search-icon{
+    position:absolute;
+    left:11px;top:50%;
+    transform:translateY(-50%);
+    width:14px;height:14px;
+    color:var(--text-muted);
+    pointer-events:none;
+  }
+
+  /* ---------- Table ---------- */
+  .table-wrap{
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    font-family:var(--sans);
+  }
+
+  thead th{
+    text-align:right;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--text-muted);
+    font-weight:600;
+    padding:13px 16px;
+    border-bottom:1px solid var(--border);
+    background:var(--surface-2);
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
+    transition:color .15s;
+  }
+  thead th:hover{color:var(--text-secondary);}
+  thead th.active{color:var(--accent);}
+  thead th.col-rank,thead th.col-name{text-align:left;}
+
+  .th-inner{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+  }
+  thead th.col-rank .th-inner,thead th.col-name .th-inner{flex-direction:row;}
+  thead th:not(.col-rank):not(.col-name) .th-inner{flex-direction:row-reverse;}
+
+  .sort-arrow{
+    font-size:9px;
+    opacity:0;
+    transition:opacity .15s;
+  }
+  thead th.active .sort-arrow{opacity:1;}
+
+  tbody tr{
+    border-bottom:1px solid var(--border-soft);
+    transition:background .12s;
+  }
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:hover{background:var(--surface-2);}
+
+  td{
+    padding:12px 16px;
+    font-size:13.5px;
+    text-align:right;
+    white-space:nowrap;
+    font-family:var(--mono);
+  }
+
+  td.col-rank{
+    text-align:left;
+    color:var(--text-muted);
+    font-size:12.5px;
+    width:36px;
+  }
+
+  td.col-name{
+    text-align:left;
+    font-family:var(--sans);
+  }
+
+  .coin-cell{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .coin-cell img{
+    width:24px;height:24px;
+    border-radius:50%;
+    flex-shrink:0;
+    background:var(--surface-3);
+  }
+  .coin-name{
+    font-weight:500;
+    font-size:13.5px;
+    color:var(--text-primary);
+  }
+  .coin-symbol{
+    font-family:var(--mono);
+    font-size:11.5px;
+    color:var(--text-muted);
+    text-transform:uppercase;
+  }
+
+  .change-pill{
+    display:inline-flex;
+    align-items:center;
+    gap:3px;
+    padding:3px 8px;
+    border-radius:6px;
+    font-size:12.5px;
+    font-weight:500;
+    font-family:var(--mono);
+  }
+  .change-pill.pos{background:var(--positive-dim); color:var(--positive);}
+  .change-pill.neg{background:var(--negative-dim); color:var(--negative);}
+
+  .flash-up{animation:flashUp 0.9s ease-out;}
+  .flash-down{animation:flashDown 0.9s ease-out;}
+  @keyframes flashUp{
+    0%{background:rgba(52,211,153,0.16);}
+    100%{background:transparent;}
+  }
+  @keyframes flashDown{
+    0%{background:rgba(248,113,113,0.16);}
+    100%{background:transparent;}
+  }
+
+  .empty-state{
+    padding:60px 20px;
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13.5px;
+  }
+
+  .skeleton-row td{padding:14px 16px;}
+  .skeleton-bar{
+    height:14px;
+    border-radius:4px;
+    background:linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.4s infinite;
+  }
+  @keyframes shimmer{
+    0%{background-position:200% 0;}
+    100%{background-position:-200% 0;}
+  }
+
+  .error-banner{
+    background:var(--negative-dim);
+    border:1px solid rgba(248,113,113,0.25);
+    color:var(--negative);
+    padding:12px 16px;
+    border-radius:8px;
+    font-size:13px;
+    margin-bottom:16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .error-banner button{
+    background:transparent;
+    border:1px solid rgba(248,113,113,0.4);
+    color:var(--negative);
+    border-radius:6px;
+    padding:5px 10px;
+    font-size:12px;
+    cursor:pointer;
+    font-family:var(--sans);
+    flex-shrink:0;
+  }
+
+  /* ---------- Mobile cards ---------- */
+  .card-list{display:none;}
+
+  @media (max-width: 760px){
+    .app{padding:0 14px 40px;}
+    thead{display:none;}
+    table,tbody,tr,td{display:block; width:100%;}
+    .table-wrap{background:transparent; border:none;}
+    tbody tr{
+      background:var(--surface);
+      border:1px solid var(--border-soft);
+      border-radius:var(--radius);
+      margin-bottom:10px;
+      padding:14px;
+    }
+    tbody tr:hover{background:var(--surface);}
+    td{padding:0; text-align:left; white-space:normal;}
+
+    .mcard-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .mcard-price-row{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      margin-bottom:8px;
+    }
+    .mcard-price{
+      font-family:var(--mono);
+      font-size:17px;
+      font-weight:600;
+    }
+    .mcard-stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:6px 12px;
+      padding-top:10px;
+      border-top:1px solid var(--border-soft);
+    }
+    .mcard-stat-label{
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:0.05em;
+      color:var(--text-muted);
+      margin-bottom:2px;
+    }
+    .mcard-stat-value{
+      font-family:var(--mono);
+      font-size:12.5px;
+      color:var(--text-secondary);
+    }
+    .col-price,.col-change,.col-mcap,.col-volume,.col-1h,.col-7d{display:none;}
+  }
+
+  .footer-note{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:11.5px;
+    font-family:var(--mono);
+    margin-top:22px;
+  }
+
+  a{color:inherit;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">L</div>
+        <div class="brand-text">
+          <h1>Ledger</h1>
+          <p>Live market data</p>
+        </div>
+      </div>
+      <div class="status-cluster">
+        <div class="live-pulse">
+          <div class="dot" id="liveDot"></div>
+          <span id="lastUpdated">Loading…</span>
+        </div>
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search name or symbol…" autocomplete="off">
+        </div>
+        <select id="refreshSelect" style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:8px 10px;">
+          <option value="5000">5s</option>
+          <option value="10000">10s</option>
+          <option value="15000">15s</option>
+          <option value="30000">30s</option>
+          <option value="45000" selected>45s</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div id="errorBanner" style="display:none;"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-rank" data-sort="market_cap_rank"><span class="th-inner">#</span></th>
+          <th class="col-name" data-sort="name"><span class="th-inner">Coin</span></th>
+          <th class="col-price" data-sort="current_price"><span class="th-inner">Price<span class="sort-arrow">▼</span></span></th>
+          <th class="col-1h" data-sort="price_change_percentage_1h_in_currency"><span class="th-inner">1h<span class="sort-arrow">▼</span></span></th>
+          <th class="col-change" data-sort="price_change_percentage_24h_in_currency"><span class="th-inner">24h<span class="sort-arrow">▼</span></span></th>
+          <th class="col-7d" data-sort="price_change_percentage_7d_in_currency"><span class="th-inner">7d<span class="sort-arrow">▼</span></span></th>
+          <th class="col-mcap active" data-sort="market_cap"><span class="th-inner">Market cap<span class="sort-arrow">▼</span></span></th>
+          <th class="col-volume" data-sort="total_volume"><span class="th-inner">24h volume<span class="sort-arrow">▼</span></span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- rows injected here -->
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-note">Data from CoinGecko · refreshes automatically every 45s</div>
+</div>
+
+<script>
+(function(){
+  const API_URL = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=1h,24h,7d";
+  
+  let REFRESH_MS = 45000;
+  let coins = [];
+  let prevPrices = {};
+  let sortKey = "market_cap";
+  let sortDir = "desc";
+  let searchTerm = "";
+  let lastFetchTime = null;
+  let fetchTimer = null;
+  let countdownTimer = null;
+
+  const tableBody = document.getElementById('tableBody');
+  const searchInput = document.getElementById('searchInput');
+  const lastUpdatedEl = document.getElementById('lastUpdated');
+  const liveDot = document.getElementById('liveDot');
+  const errorBanner = document.getElementById('errorBanner');
+  const headers = document.querySelectorAll('thead th[data-sort]');
+
+  function formatCurrency(num, opts){
+    opts = opts || {};
+    if(num === null || num === undefined) return '—';
+    const digits = num < 1 ? (opts.small ? 6 : 4) : 2;
+    return '$' + num.toLocaleString('en-US', {
+      minimumFractionDigits: opts.compact ? 0 : Math.min(digits,2),
+      maximumFractionDigits: opts.compact ? 0 : digits
+    });
+  }
+
+  function formatCompact(num){
+    if(num === null || num === undefined) return '—';
+    return '$' + Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:2 }).format(num);
+  }
+
+  function formatPct(num){
+    if(num === null || num === undefined) return '—';
+    const sign = num > 0 ? '+' : '';
+    return sign + num.toFixed(2) + '%';
+  }
+
+  function renderSkeleton(){
+    let rows = '';
+    for(let i=0;i<12;i++){
+      rows += `<tr class="skeleton-row">
+        <td colspan="6"><div class="skeleton-bar" style="width:${70+Math.random()*20}%"></div></td>
+      </tr>`;
+    }
+    tableBody.innerHTML = rows;
+  }
+
+  function getSorted(list){
+    const sorted = [...list].sort((a,b)=>{
+      let av = a[sortKey], bv = b[sortKey];
+      if(sortKey === 'name'){
+        av = (av||'').toLowerCase(); bv = (bv||'').toLowerCase();
+        return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      av = av === null || av === undefined ? -Infinity : av;
+      bv = bv === null || bv === undefined ? -Infinity : bv;
+      return sortDir === 'asc' ? av - bv : bv - av;
+    });
+    return sorted;
+  }
+
+  function getFiltered(list){
+    if(!searchTerm) return list;
+    const q = searchTerm.toLowerCase();
+    return list.filter(c =>
+      c.name.toLowerCase().includes(q) || c.symbol.toLowerCase().includes(q)
+    );
+  }
+
+  function render(){
+    const filtered = getFiltered(coins);
+    const sorted = getSorted(filtered);
+
+    if(sorted.length === 0){
+      tableBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No coins match "${escapeHtml(searchTerm)}"</div></td></tr>`;
+      return;
+    }
+
+    let html = '';
+    sorted.forEach(c => {
+      const changeClass = c.price_change_percentage_24h_in_currency >= 0 ? 'pos' : 'neg';
+      const changeArrow = c.price_change_percentage_24h_in_currency >= 0 ? '▲' : '▼';
+      const prevPrice = prevPrices[c.id];
+      let flashClass = '';
+      if(prevPrice !== undefined && prevPrice !== c.current_price){
+        flashClass = c.current_price > prevPrice ? 'flash-up' : 'flash-down';
+      }
+
+      html += `<tr>
+        <td class="col-rank">${c.market_cap_rank ?? '—'}</td>
+        <td class="col-name">
+          <div class="coin-cell">
+            <img src="${c.image}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <div>
+              <div class="coin-name">${escapeHtml(c.name)}</div>
+              <div class="coin-symbol">${escapeHtml(c.symbol)}</div>
+            </div>
+          </div>
+        </td>
+        <td class="col-price ${flashClass}">${formatCurrency(c.current_price)}</td>
+        <td class="col-1h">
+          <span class="change-pill ${c.price_change_percentage_1h_in_currency >= 0 ? 'pos' : 'neg'}">${c.price_change_percentage_1h_in_currency >= 0 ? '▲' : '▼'} ${Math.abs(c.price_change_percentage_1h_in_currency ?? 0).toFixed(2)}%</span>
+        </td>
+        <td class="col-change">
+          <span class="change-pill ${changeClass}">${changeArrow} ${Math.abs(c.price_change_percentage_24h_in_currency ?? 0).toFixed(2)}%</span>
+        </td>
+        <td class="col-7d">
+          <span class="change-pill ${c.price_change_percentage_7d_in_currency >= 0 ? 'pos' : 'neg'}">${c.price_change_percentage_7d_in_currency >= 0 ? '▲' : '▼'} ${Math.abs(c.price_change_percentage_7d_in_currency ?? 0).toFixed(2)}%</span>
+        </td>
+        <td class="col-mcap">${formatCompact(c.market_cap)}</td>
+        <td class="col-volume">${formatCompact(c.total_volume)}</td>
+        <td class="mobile-only" style="display:none"></td>
+      </tr>`;
+    });
+
+    tableBody.innerHTML = html;
+    buildMobileCards(sorted);
+
+    prevPrices = {};
+    coins.forEach(c => prevPrices[c.id] = c.current_price);
+
+    updateHeaderState();
+  }
+
+  function buildMobileCards(sorted){
+    // Instead of separate DOM, reuse same rows but style via CSS for mobile.
+    // We inject extra markup into each row's cells for mobile display using CSS classes above.
+    const rows = tableBody.querySelectorAll('tr');
+    rows.forEach((row, i) => {
+      const c = sorted[i];
+      if(!c) return;
+      const changeClass = c.price_change_percentage_24h_in_currency >= 0 ? 'pos' : 'neg';
+      const changeArrow = c.price_change_percentage_24h_in_currency >= 0 ? '▲' : '▼';
+      const nameCell = row.querySelector('.col-name');
+      if(!nameCell) return;
+
+      let mobileExtra = row.querySelector('.mobile-extra');
+      if(!mobileExtra){
+        mobileExtra = document.createElement('div');
+        mobileExtra.className = 'mobile-extra';
+        nameCell.appendChild(mobileExtra);
+      }
+      mobileExtra.innerHTML = `
+        <div class="mcard-price-row">
+          <span class="mcard-price">${formatCurrency(c.current_price)}</span>
+          <span class="change-pill ${changeClass}">${changeArrow} ${Math.abs(c.price_change_percentage_24h_in_currency ?? 0).toFixed(2)}%</span>
+        </div>
+        <div class="mcard-stats">
+          <div>
+            <div class="mcard-stat-label">Market cap</div>
+            <div class="mcard-stat-value">${formatCompact(c.market_cap)}</div>
+          </div>
+          <div>
+            <div class="mcard-stat-label">24h volume</div>
+            <div class="mcard-stat-value">${formatCompact(c.total_volume)}</div>
+          </div>
+        </div>
+      `;
+      mobileExtra.style.display = 'none';
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function updateHeaderState(){
+    headers.forEach(th => {
+      const key = th.getAttribute('data-sort');
+      th.classList.toggle('active', key === sortKey);
+      const arrow = th.querySelector('.sort-arrow');
+      if(arrow){
+        arrow.textContent = sortDir === 'asc' ? '▲' : '▼';
+      }
+    });
+  }
+
+  async function fetchData(showSkeleton){
+    if(showSkeleton) renderSkeleton();
+    liveDot.classList.add('fetching');
+    try{
+      const res = await fetch(API_URL);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      coins = data;
+      lastFetchTime = Date.now();
+      errorBanner.style.display = 'none';
+      render();
+    }catch(err){
+      errorBanner.style.display = 'flex';
+      errorBanner.className = 'error-banner';
+      errorBanner.innerHTML = `<span>Couldn't refresh market data. ${escapeHtml(err.message || '')}</span>`;
+      const retryBtn = document.createElement('button');
+      retryBtn.textContent = 'Retry';
+      retryBtn.onclick = () => fetchData(coins.length === 0);
+      errorBanner.appendChild(retryBtn);
+    }finally{
+      liveDot.classList.remove('fetching');
+    }
+  }
+
+  function updateCountdown(){
+    if(!lastFetchTime){ lastUpdatedEl.textContent = 'Loading…'; return; }
+    const secs = Math.floor((Date.now() - lastFetchTime) / 1000);
+    lastUpdatedEl.textContent = secs <= 1 ? 'Updated just now' : `Updated ${secs}s ago`;
+  }
+
+  headers.forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.getAttribute('data-sort');
+      if(sortKey === key){
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      }else{
+        sortKey = key;
+        sortDir = key === 'name' ? 'asc' : 'desc';
+      }
+      render();
+    });
+  });
+
+  let searchDebounce;
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      searchTerm = e.target.value.trim();
+      render();
+    }, 150);
+  });
+
+  // Sync mobile card visibility with viewport via CSS already; but we need
+  // the injected .mobile-extra to only show on mobile — controlled by CSS.
+  const mobileStyleTag = document.createElement('style');
+  mobileStyleTag.textContent = `
+    @media (max-width: 760px){
+      .mobile-extra{ display:block !important; }
+    }
+  `;
+  document.head.appendChild(mobileStyleTag);
+
+  function startAutoRefresh(){
+    if(fetchTimer) clearInterval(fetchTimer);
+    fetchTimer = setInterval(() => fetchData(false), REFRESH_MS);
+  }
+
+  document.getElementById('refreshSelect').addEventListener('change', (e) => {
+    REFRESH_MS = parseInt(e.target.value, 10);
+    startAutoRefresh();
+  });
+
+  fetchData(true);
+  startAutoRefresh();
+  countdownTimer = setInterval(updateCountdown, 1000);
+})();
+</script>
+
+</body>
+</html>
