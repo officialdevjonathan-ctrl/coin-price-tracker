@@ -448,11 +448,11 @@
           <th class="col-rank" data-sort="market_cap_rank"><span class="th-inner">#</span></th>
           <th class="col-name" data-sort="name"><span class="th-inner">Coin</span></th>
           <th class="col-price" data-sort="current_price"><span class="th-inner">Price<span class="sort-arrow">▼</span></span></th>
+          <th class="col-mcap active" data-sort="market_cap"><span class="th-inner">Market cap<span class="sort-arrow">▼</span></span></th>
           <th class="col-1h" data-sort="price_change_percentage_1h_in_currency"><span class="th-inner">1h<span class="sort-arrow">▼</span></span></th>
           <th class="col-change" data-sort="price_change_percentage_24h_in_currency"><span class="th-inner">24h<span class="sort-arrow">▼</span></span></th>
           <th class="col-7d" data-sort="price_change_percentage_7d_in_currency"><span class="th-inner">7d<span class="sort-arrow">▼</span></span></th>
           <th class="col-sparkline">7d chart</th>
-          <th class="col-mcap active" data-sort="market_cap"><span class="th-inner">Market cap<span class="sort-arrow">▼</span></span></th>
           <th class="col-volume" data-sort="total_volume"><span class="th-inner">24h volume<span class="sort-arrow">▼</span></span></th>
         </tr>
       </thead>
@@ -587,6 +587,7 @@
           </div>
         </td>
         <td class="col-price ${flashClass}">${formatCurrency(c.current_price)}</td>
+        <td class="col-mcap">${formatCompact(c.market_cap)}</td>
         <td class="col-1h">
           <span class="change-pill ${c.price_change_percentage_1h_in_currency >= 0 ? 'pos' : 'neg'}">${c.price_change_percentage_1h_in_currency >= 0 ? '▲' : '▼'} ${Math.abs(c.price_change_percentage_1h_in_currency ?? 0).toFixed(2)}%</span>
         </td>
@@ -597,7 +598,6 @@
           <span class="change-pill ${c.price_change_percentage_7d_in_currency >= 0 ? 'pos' : 'neg'}">${c.price_change_percentage_7d_in_currency >= 0 ? '▲' : '▼'} ${Math.abs(c.price_change_percentage_7d_in_currency ?? 0).toFixed(2)}%</span>
         </td>
         <td class="col-sparkline">${buildSparkline(c.sparkline_in_7d?.price, c.price_change_percentage_7d_in_currency >= 0)}</td>
-        <td class="col-mcap">${formatCompact(c.market_cap)}</td>
         <td class="col-volume">${formatCompact(c.total_volume)}</td>
         <td class="mobile-only" style="display:none"></td>
       </tr>`;
