@@ -435,6 +435,12 @@
           <option value="30000">30s</option>
           <option value="45000" selected>45s</option>
         </select>
+        <select id="pageSizeSelect" style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:8px 10px;">
+          <option value="50">50 / page</option>
+          <option value="100" selected>100 / page</option>
+          <option value="200">200 / page</option>
+          <option value="500">500 / page</option>
+        </select>
       </div>
     </div>
   </div>
@@ -461,18 +467,26 @@
       </tbody>
     </table>
   </div>
-
+  <div id="paginationControls" style="display:flex; align-items:center; justify-content:center; gap:14px; margin-top:18px; font-family:var(--mono); font-size:13px; color:var(--text-secondary);">
+    <button id="prevPageBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:6px 12px; cursor:pointer; font-family:var(--mono);">Prev</button>
+    <span id="pageIndicator">Page 1</span>
+    <button id="nextPageBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:6px 12px; cursor:pointer; font-family:var(--mono);">Next</button>
+  </div>
   <div class="footer-note">Data from CoinGecko · refreshes automatically every 45s</div>
 </div>
 
 <script>
 (function(){
-  const API_URL = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=true&price_change_percentage=1h,24h,7d";
-  
+  const PAGES_TO_FETCH = 4;
+  const COINS_PER_FETCH = 250;
+  const API_URL_BASE = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d&per_page=" + COINS_PER_FETCH;
+    
   let REFRESH_MS = 45000;
   let coins = [];
   let prevPrices = {};
   let sortKey = "market_cap";
+  let currentPage = 1;
+  let pageSize = 100;
   let sortDir = "desc";
   let searchTerm = "";
   let lastFetchTime = null;
@@ -559,6 +573,10 @@
   function render(){
     const filtered = getFiltered(coins);
     const sorted = getSorted(filtered);
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    if(currentPage > totalPages) currentPage = totalPages;
+    const startIdx = (currentPage - 1) * pageSize;
+    const pageItems = sorted.slice(startIdx, startIdx + pageSize);
 
     if(sorted.length === 0){
       tableBody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No coins match "${escapeHtml(searchTerm)}"</div></td></tr>`;
@@ -566,7 +584,7 @@
     }
 
     let html = '';
-    sorted.forEach(c => {
+    pageItems.forEach(c => {
       const changeClass = c.price_change_percentage_24h_in_currency >= 0 ? 'pos' : 'neg';
       const changeArrow = c.price_change_percentage_24h_in_currency >= 0 ? '▲' : '▼';
       const prevPrice = prevPrices[c.id];
@@ -604,7 +622,7 @@
     });
 
     tableBody.innerHTML = html;
-    buildMobileCards(sorted);
+    buildMobileCards(pageItems);
 
     prevPrices = {};
     coins.forEach(c => prevPrices[c.id] = c.current_price);
@@ -671,10 +689,15 @@
     if(showSkeleton) renderSkeleton();
     liveDot.classList.add('fetching');
     try{
-      const res = await fetch(API_URL);
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      coins = data;
+      const requests = [];
+      for(let p = 1; p <= PAGES_TO_FETCH; p++){
+        requests.push(fetch(`${API_URL_BASE}&page=${p}`).then(res => {
+          if(!res.ok) throw new Error('HTTP ' + res.status);
+          return res.json();
+        }));
+      }
+      const pages = await Promise.all(requests);
+      coins = pages.flat();
       lastFetchTime = Date.now();
       errorBanner.style.display = 'none';
       render();
@@ -715,8 +738,17 @@
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
       searchTerm = e.target.value.trim();
+      searchTerm = e.target.value.trim();
+      currentPage = 1;
       render();
     }, 150);
+  });
+
+  document.getElementById('prevPageBtn').addEventListener('click', () => {
+    if(currentPage > 1){ currentPage--; render(); }
+  });
+  document.getElementById('nextPageBtn').addEventListener('click', () => {
+    currentPage++; render();
   });
 
   // Sync mobile card visibility with viewport via CSS already; but we need
@@ -737,6 +769,11 @@
   document.getElementById('refreshSelect').addEventListener('change', (e) => {
     REFRESH_MS = parseInt(e.target.value, 10);
     startAutoRefresh();
+  });
+  document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+    pageSize = parseInt(e.target.value, 10);
+    currentPage = 1;
+    render();
   });
 
   fetchData(true);
