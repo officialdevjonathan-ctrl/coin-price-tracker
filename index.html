@@ -392,7 +392,29 @@
     }
     .col-price,.col-change,.col-mcap,.col-volume,.col-1h,.col-7d{display:none;}
   }
-
+  .pagination-bar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    margin:18px 0;
+    flex-wrap:wrap;
+  }
+  .page-btn{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text-secondary);
+    border-radius:6px;
+    padding:6px 11px;
+    cursor:pointer;
+    font-family:var(--mono);
+    font-size:12.5px;
+    transition:background .12s, color .12s;
+  }
+  .page-btn:hover{background:var(--surface-3); color:var(--text-primary);}
+  .page-btn:disabled{opacity:0.35; cursor:default;}
+  .page-btn.active{background:var(--accent-dim); color:var(--accent); border-color:var(--accent);}
+  
   .footer-note{
     text-align:center;
     color:var(--text-muted);
@@ -447,6 +469,8 @@
 
   <div id="errorBanner" style="display:none;"></div>
 
+  <div class="pagination-bar" id="paginationTop"></div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -466,12 +490,8 @@
         <!-- rows injected here -->
       </tbody>
     </table>
-  </div>
-  <div id="paginationControls" style="display:flex; align-items:center; justify-content:center; gap:14px; margin-top:18px; font-family:var(--mono); font-size:13px; color:var(--text-secondary);">
-    <button id="prevPageBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:6px 12px; cursor:pointer; font-family:var(--mono);">Prev</button>
-    <span id="pageIndicator">Page 1</span>
-    <button id="nextPageBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:6px; padding:6px 12px; cursor:pointer; font-family:var(--mono);">Next</button>
-  </div>
+  </div>  
+  <div class="pagination-bar" id="paginationBottom"></div>
   <div class="footer-note">Data from CoinGecko · refreshes automatically every 45s</div>
 </div>
 
@@ -519,6 +539,24 @@
     if(num === null || num === undefined) return '—';
     const sign = num > 0 ? '+' : '';
     return sign + num.toFixed(2) + '%';
+  }
+
+  function renderPaginationControls(totalPages){
+    const windowSize = 10;
+    let start = Math.max(1, currentPage - Math.floor(windowSize / 2));
+    let end = Math.min(totalPages, start + windowSize - 1);
+    start = Math.max(1, end - windowSize + 1);
+
+    let numbersHtml = '';
+    for(let p = start; p <= end; p++){
+      numbersHtml += `<button class="page-btn ${p === currentPage ? 'active' : ''}" data-page="${p}">${p}</button>`;
+    }
+
+    return `
+      <button class="page-btn" data-action="prev" ${currentPage <= 1 ? 'disabled' : ''}>Prev</button>
+      ${numbersHtml}
+      <button class="page-btn" data-action="next" ${currentPage >= totalPages ? 'disabled' : ''}>Next</button>
+    `;
   }
 
   function buildSparkline(prices, isPositive){
@@ -584,7 +622,7 @@
     }
 
     let html = '';
-    pageItems.forEach(c => {
+    pageItems.forEach((c, idx) => {
       const changeClass = c.price_change_percentage_24h_in_currency >= 0 ? 'pos' : 'neg';
       const changeArrow = c.price_change_percentage_24h_in_currency >= 0 ? '▲' : '▼';
       const prevPrice = prevPrices[c.id];
@@ -594,7 +632,7 @@
       }
 
       html += `<tr>
-        <td class="col-rank">${c.market_cap_rank ?? '—'}</td>
+        <td class="col-rank">${startIdx + idx + 1}</td>
         <td class="col-name">
           <div class="coin-cell">
             <img src="${c.image}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
@@ -626,6 +664,10 @@
 
     prevPrices = {};
     coins.forEach(c => prevPrices[c.id] = c.current_price);
+
+    const paginationHtml = renderPaginationControls(totalPages);
+    document.getElementById('paginationTop').innerHTML = paginationHtml;
+    document.getElementById('paginationBottom').innerHTML = paginationHtml;
 
     updateHeaderState();
   }
@@ -744,13 +786,17 @@
     }, 150);
   });
 
-  document.getElementById('prevPageBtn').addEventListener('click', () => {
-    if(currentPage > 1){ currentPage--; render(); }
-  });
-  document.getElementById('nextPageBtn').addEventListener('click', () => {
-    currentPage++; render();
-  });
-
+  function handlePaginationClick(e){
+    const btn = e.target.closest('.page-btn');
+    if(!btn || btn.disabled) return;
+    if(btn.dataset.action === 'prev'){ currentPage--; }
+    else if(btn.dataset.action === 'next'){ currentPage++; }
+    else if(btn.dataset.page){ currentPage = parseInt(btn.dataset.page, 10); }
+    render();
+  }
+  document.getElementById('paginationTop').addEventListener('click', handlePaginationClick);
+  document.getElementById('paginationBottom').addEventListener('click', handlePaginationClick);
+  
   // Sync mobile card visibility with viewport via CSS already; but we need
   // the injected .mobile-extra to only show on mobile — controlled by CSS.
   const mobileStyleTag = document.createElement('style');
