@@ -178,10 +178,29 @@
     max-height:70vh;
     overflow:auto;
   }
+  .table-wrap::-webkit-scrollbar{
+    width:8px;
+    height:8px;
+  }
+  .table-wrap::-webkit-scrollbar-track{
+    background:var(--surface);
+  }
+  .table-wrap::-webkit-scrollbar-thumb{
+    background:var(--border);
+    border-radius:4px;
+  }
+  .table-wrap::-webkit-scrollbar-thumb:hover{
+    background:var(--text-muted);
+  }
+  .table-wrap{
+    scrollbar-width:thin;
+    scrollbar-color:var(--border) var(--surface);
+  }
 
   table{
     width:100%;
-    border-collapse:collapse;
+    border-collapse:separate;
+    border-spacing:0;
     font-family:var(--sans);
   }
 
@@ -657,8 +676,7 @@
     });
 
     tableBody.innerHTML = html;
-    buildMobileCards(pageItems);
-
+    
     prevPrices = {};
     coins.forEach(c => prevPrices[c.id] = c.current_price);
 
