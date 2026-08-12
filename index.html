@@ -626,9 +626,10 @@
 
 <script>
 (function(){
+  const CG_API_KEY = CG-eoiho2wbXn5kKo4KWyL4sAFU;
   const PAGES_TO_FETCH = 2;
   const COINS_PER_FETCH = 250;
-  const API_URL_BASE = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d&per_page=" + COINS_PER_FETCH;
+  const API_URL_BASE = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d&per_page=" + COINS_PER_FETCH + "&x_cg_demo_api_key=" + CG_API_KEY;
     
   let REFRESH_MS = 45000;
   let coins = [];
@@ -879,7 +880,7 @@
   async function loadCoinDetailData(coinId){
     document.getElementById('coinDetailSidebar').innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Loading coin details…</div>';
     try{
-      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=true&sparkline=false`);
+      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=true&sparkline=false&x_cg_demo_api_key=${CG_API_KEY}`);
       if(!res.ok) throw new Error('HTTP ' + res.status);
       const data = await res.json();
       coinDetailData = data;
