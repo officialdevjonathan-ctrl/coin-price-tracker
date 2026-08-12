@@ -206,6 +206,37 @@
     scrollbar-color:var(--border) var(--surface);
   }
 
+  .coin-detail-flex{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+  }
+  .coin-mini-list{
+    width:240px;
+    flex-shrink:0;
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    max-height:80vh;
+    overflow-y:auto;
+  }
+  .coin-detail-main{
+    flex:1;
+    min-width:0;
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .coin-detail-sidebar{
+    width:300px;
+    flex-shrink:0;
+    background:var(--surface);
+    border:1px solid var(--border-soft);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+
   #coinMiniList::-webkit-scrollbar{
     width:8px;
   }
@@ -435,7 +466,18 @@
       font-size:12.5px;
     }
     .search-wrap{ width:120px; }
+    #pageSizeSelect{ display:none; }
   }
+  .coin-detail-flex{
+      flex-direction:column;
+    }
+    .coin-mini-list{
+      width:100%;
+      max-height:190px;
+    }
+    .coin-detail-main, .coin-detail-sidebar{
+      width:100%;
+    }
   .pagination-bar{
     display:flex;
     align-items:center;
@@ -553,17 +595,17 @@
   <div id="coinDetailView" style="display:none;">
     <button id="coinDetailBackBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:8px; padding:8px 14px; font-family:var(--sans); font-size:13px; cursor:pointer; margin-bottom:16px;">← Back to all coins</button>
 
-    <div style="display:flex; gap:16px; align-items:flex-start;">
+    <div class="coin-detail-flex">
 
-      <div id="coinMiniList" style="width:240px; flex-shrink:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); max-height:80vh; overflow-y:auto;">
+      <div id="coinMiniList" class="coin-mini-list">
         <!-- mini coin list injected here -->
       </div>
 
-      <div id="coinDetailMain" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:20px;">
+      <div id="coinDetailMain" class="coin-detail-main">
         <!-- chart + exchanges injected here -->
       </div>
 
-      <div id="coinDetailSidebar" style="width:300px; flex-shrink:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:20px;">
+      <div id="coinDetailSidebar" class="coin-detail-sidebar">
         <!-- stats injected here -->
       </div>
 
