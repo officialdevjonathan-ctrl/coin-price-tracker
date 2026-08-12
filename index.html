@@ -874,6 +874,22 @@
     `;
   }
 
+  let coinDetailData = null;
+
+  async function loadCoinDetailData(coinId){
+    document.getElementById('coinDetailSidebar').innerHTML = '<div style="color:var(--text-muted); font-size:13px;">Loading coin details…</div>';
+    try{
+      const res = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=true&sparkline=false`);
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      coinDetailData = data;
+      console.log('Coin detail data:', data);
+      renderCoinDetailSidebarSection1();
+    }catch(err){
+      document.getElementById('coinDetailSidebar').innerHTML = `<div style="color:var(--negative); font-size:13px;">Couldn't load coin details. ${escapeHtml(err.message || '')}</div>`;
+    }
+  }
+
   function hideCoinDetail(){
     activeCoinId = null;
     document.getElementById('coinDetailView').style.display = 'none';
