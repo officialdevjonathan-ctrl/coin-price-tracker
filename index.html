@@ -236,6 +236,41 @@
     border-radius:var(--radius);
     padding:20px;
   }
+  .sidebar-section{
+    padding-top:16px;
+    margin-top:16px;
+    border-top:1px solid var(--border-soft);
+  }
+  .sidebar-stat-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:7px 0;
+  }
+  .sidebar-stat-label{
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .sidebar-stat-value{
+    font-family:var(--mono);
+    font-size:13px;
+    font-weight:500;
+    text-align:right;
+  }
+  .sidebar-link-pill{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--accent);
+    border-radius:6px;
+    padding:4px 10px;
+    font-size:11.5px;
+    text-decoration:none;
+    white-space:nowrap;
+  }
+  .sidebar-link-pill:hover{
+    background:var(--surface-3);
+  }
 
   @media (min-width: 1300px){
     .coin-detail-main{
@@ -876,6 +911,86 @@
           <span style="font-family:var(--mono); font-size:26px; font-weight:600;">${formatCurrency(price)}</span>
           <span class="change-pill ${changeClass}">${changeArrow} ${Math.abs(change24h ?? 0).toFixed(2)}%</span>
         </div>
+      </div>
+    `;
+  }
+
+  function renderCoinDetailSidebarSection2(){
+    if(!coinDetailData) return '';
+    const d = coinDetailData;
+    const m = d.market_data || {};
+    const symbol = (d.symbol || '').toUpperCase();
+
+    const rows = [
+      ['Market Cap', formatCurrency(m.market_cap?.usd)],
+      ['FDV', m.fully_diluted_valuation?.usd ? formatCurrency(m.fully_diluted_valuation.usd) : 'N/A'],
+      ['24h Volume', formatCurrency(m.total_volume?.usd)],
+      ['Total Supply', m.total_supply ? formatCompactNumber(m.total_supply) + ' ' + symbol : 'N/A'],
+      ['Max Supply', m.max_supply ? formatCompactNumber(m.max_supply) + ' ' + symbol : 'N/A'],
+      ['Circulating Supply', m.circulating_supply ? formatCompactNumber(m.circulating_supply) + ' ' + symbol : 'N/A'],
+    ];
+
+    return `
+      <div class="sidebar-section">
+        ${rows.map(([label, value]) => `
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">${label}</span>
+            <span class="sidebar-stat-value">${value}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  function renderCoinDetailSidebarSection3(){
+    if(!coinDetailData) return '';
+    const d = coinDetailData;
+    const links = d.links || {};
+
+    const website = (links.homepage || []).find(url => url);
+    const whitepaper = links.whitepaper || null;
+
+    const socialLinks = [];
+    if(links.twitter_screen_name) socialLinks.push({ label:'X', url:`https://x.com/${links.twitter_screen_name}` });
+    if(links.subreddit_url) socialLinks.push({ label:'Reddit', url:links.subreddit_url });
+    if(links.repos_url?.github?.[0]) socialLinks.push({ label:'GitHub', url:links.repos_url.github[0] });
+    if(links.telegram_channel_identifier) socialLinks.push({ label:'Telegram', url:`https://t.me/${links.telegram_channel_identifier}` });
+
+    const upVotes = d.sentiment_votes_up_percentage;
+    const downVotes = d.sentiment_votes_down_percentage;
+
+    const explorers = (links.blockchain_site || []).filter(url => url).slice(0, 4);
+
+    return `
+      <div class="sidebar-section">
+        ${website ? `<div class="sidebar-stat-row"><span class="sidebar-stat-label">Website</span><a href="${website}" target="_blank" rel="noopener" class="sidebar-link-pill">Visit ↗</a></div>` : ''}
+        ${whitepaper ? `<div class="sidebar-stat-row"><span class="sidebar-stat-label">Whitepaper</span><a href="${whitepaper}" target="_blank" rel="noopener" class="sidebar-link-pill">Read ↗</a></div>` : ''}
+        ${socialLinks.length ? `
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Socials</span>
+            <span style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${socialLinks.map(s => `<a href="${s.url}" target="_blank" rel="noopener" class="sidebar-link-pill">${s.label}</a>`).join('')}
+            </span>
+          </div>
+        ` : ''}
+        ${(upVotes !== undefined && upVotes !== null) ? `
+          <div class="sidebar-stat-row" style="flex-direction:column; align-items:flex-start; gap:6px;">
+            <span class="sidebar-stat-label">Community Sentiment</span>
+            <div style="width:100%; display:flex; height:6px; border-radius:3px; overflow:hidden;">
+              <div style="width:${upVotes}%; background:var(--positive);"></div>
+              <div style="width:${downVotes}%; background:var(--negative);"></div>
+            </div>
+            <span style="font-family:var(--mono); font-size:11px; color:var(--text-muted);">${upVotes.toFixed(0)}% bullish · ${downVotes.toFixed(0)}% bearish</span>
+          </div>
+        ` : ''}
+        ${explorers.length ? `
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Explorers</span>
+            <span style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${explorers.map(url => `<a href="${url}" target="_blank" rel="noopener" class="sidebar-link-pill">${new URL(url).hostname.replace('www.','')}</a>`).join('')}
+            </span>
+          </div>
+        ` : ''}
       </div>
     `;
   }
