@@ -185,6 +185,9 @@
 
   thead th{
     text-align:right;
+    position:sticky;
+    top:var(--topbar-height, 74px);
+    z-index:10;
     font-size:11px;
     text-transform:uppercase;
     letter-spacing:0.06em;
@@ -200,7 +203,13 @@
   }
   thead th:hover{color:var(--text-secondary);}
   thead th.active{color:var(--accent);}
-  thead th.col-rank,thead th.col-name{text-align:left;}
+  thead th.col-rank,thead th.col-name{
+    text-align:left;
+    position:sticky;
+    z-index:16;
+  }
+  thead th.col-rank{ left:0; width:56px; min-width:56px; max-width:56px; }
+  thead th.col-name{ left:56px; width:190px; min-width:190px; max-width:190px; }
 
   .th-inner{
     display:inline-flex;
@@ -223,6 +232,10 @@
   }
   tbody tr:last-child{border-bottom:none;}
   tbody tr:hover{background:var(--surface-2);}
+  tbody tr:hover td.col-rank, tbody tr:hover td.col-name{
+    background:var(--surface-2);
+  }
+  
 
   td{
     padding:12px 16px;
@@ -236,12 +249,25 @@
     text-align:left;
     color:var(--text-muted);
     font-size:12.5px;
-    width:36px;
+    width:56px;
+    min-width:56px;
+    max-width:56px;
+    position:sticky;
+    left:0;
+    z-index:5;
+    background:var(--surface);
   }
 
   td.col-name{
     text-align:left;
     font-family:var(--sans);
+    width:190px;
+    min-width:190px;
+    max-width:190px;
+    position:sticky;
+    left:56px;
+    z-index:5;
+    background:var(--surface);
   }
 
   .coin-cell{
@@ -356,56 +382,10 @@
 
   @media (max-width: 760px){
     .app{padding:0 14px 40px;}
-    thead{display:none;}
-    table,tbody,tr,td{display:block; width:100%;}
-    .table-wrap{background:transparent; border:none;}
-    tbody tr{
-      background:var(--surface);
-      border:1px solid var(--border-soft);
-      border-radius:var(--radius);
-      margin-bottom:10px;
-      padding:14px;
-    }
-    tbody tr:hover{background:var(--surface);}
-    td{padding:0; text-align:left; white-space:normal;}
-
-    .mcard-top{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-bottom:10px;
-    }
-    .mcard-price-row{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      margin-bottom:8px;
-    }
-    .mcard-price{
-      font-family:var(--mono);
-      font-size:17px;
-      font-weight:600;
-    }
-    .mcard-stats{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:6px 12px;
-      padding-top:10px;
-      border-top:1px solid var(--border-soft);
-    }
-    .mcard-stat-label{
-      font-size:10px;
-      text-transform:uppercase;
-      letter-spacing:0.05em;
-      color:var(--text-muted);
-      margin-bottom:2px;
-    }
-    .mcard-stat-value{
-      font-family:var(--mono);
+    thead th, td{
+      padding:10px 12px;
       font-size:12.5px;
-      color:var(--text-secondary);
     }
-    .col-price,.col-change,.col-mcap,.col-volume,.col-1h,.col-7d{display:none;}
   }
   .pagination-bar{
     display:flex;
@@ -687,45 +667,7 @@
     updateHeaderState();
   }
 
-  function buildMobileCards(sorted){
-    // Instead of separate DOM, reuse same rows but style via CSS for mobile.
-    // We inject extra markup into each row's cells for mobile display using CSS classes above.
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach((row, i) => {
-      const c = sorted[i];
-      if(!c) return;
-      const changeClass = c.price_change_percentage_24h_in_currency >= 0 ? 'pos' : 'neg';
-      const changeArrow = c.price_change_percentage_24h_in_currency >= 0 ? '▲' : '▼';
-      const nameCell = row.querySelector('.col-name');
-      if(!nameCell) return;
-
-      let mobileExtra = row.querySelector('.mobile-extra');
-      if(!mobileExtra){
-        mobileExtra = document.createElement('div');
-        mobileExtra.className = 'mobile-extra';
-        nameCell.appendChild(mobileExtra);
-      }
-      mobileExtra.innerHTML = `
-        <div class="mcard-price-row">
-          <span class="mcard-price">${formatCurrency(c.current_price)}</span>
-          <span class="change-pill ${changeClass}">${changeArrow} ${Math.abs(c.price_change_percentage_24h_in_currency ?? 0).toFixed(2)}%</span>
-        </div>
-        <div class="mcard-stats">
-          <div>
-            <div class="mcard-stat-label">Market cap</div>
-            <div class="mcard-stat-value">${formatCompact(c.market_cap)}</div>
-          </div>
-          <div>
-            <div class="mcard-stat-label">24h volume</div>
-            <div class="mcard-stat-value">${formatCompact(c.total_volume)}</div>
-          </div>
-        </div>
-      `;
-      mobileExtra.style.display = 'none';
-    });
-  }
-
-  function escapeHtml(str){
+    function escapeHtml(str){
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
@@ -828,14 +770,7 @@
   
   // Sync mobile card visibility with viewport via CSS already; but we need
   // the injected .mobile-extra to only show on mobile — controlled by CSS.
-  const mobileStyleTag = document.createElement('style');
-  mobileStyleTag.textContent = `
-    @media (max-width: 760px){
-      .mobile-extra{ display:block !important; }
-    }
-  `;
-  document.head.appendChild(mobileStyleTag);
-
+  
   function startAutoRefresh(){
     if(fetchTimer) clearInterval(fetchTimer);
     fetchTimer = setInterval(() => fetchData(false), REFRESH_MS);
@@ -850,6 +785,15 @@
     currentPage = 1;
     render();
   });
+
+  function updateTopbarHeightVar(){
+    const topbar = document.querySelector('.topbar');
+    if(topbar){
+      document.documentElement.style.setProperty('--topbar-height', topbar.offsetHeight + 'px');
+    }
+  }
+  window.addEventListener('resize', updateTopbarHeightVar);
+  updateTopbarHeightVar();
 
   fetchData(true);
   startAutoRefresh();
