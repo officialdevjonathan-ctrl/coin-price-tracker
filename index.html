@@ -665,6 +665,11 @@
     return '$' + Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:2 }).format(num);
   }
 
+  function formatCompactNumber(num){
+    if(num === null || num === undefined) return 'N/A';
+    return Intl.NumberFormat('en-US', { notation:'compact', maximumFractionDigits:2 }).format(num);
+  }
+
   function formatPct(num){
     if(num === null || num === undefined) return '—';
     const sign = num > 0 ? '+' : '';
@@ -853,14 +858,14 @@
   }
 
   function renderCoinDetailSidebarSection1(){
-    if(!coinDetailData) return;
+    if(!coinDetailData) return '';
     const d = coinDetailData;
     const price = d.market_data?.current_price?.usd;
     const change24h = d.market_data?.price_change_percentage_24h;
     const changeClass = change24h >= 0 ? 'pos' : 'neg';
     const changeArrow = change24h >= 0 ? '▲' : '▼';
 
-    document.getElementById('coinDetailSidebar').innerHTML = `
+    return `
       <div style="margin-bottom:20px;">
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
           <img src="${d.image?.small}" alt="" style="width:28px; height:28px; border-radius:50%;">
@@ -875,6 +880,13 @@
     `;
   }
 
+  function renderCoinDetailSidebar(){
+    const html = renderCoinDetailSidebarSection1()
+      + renderCoinDetailSidebarSection2()
+      + renderCoinDetailSidebarSection3();
+    document.getElementById('coinDetailSidebar').innerHTML = html;
+  }
+
   let coinDetailData = null;
 
   async function loadCoinDetailData(coinId){
@@ -885,7 +897,7 @@
       const data = await res.json();
       coinDetailData = data;
       console.log('Coin detail data:', data);
-      renderCoinDetailSidebarSection1();
+      renderCoinDetailSidebar();
     }catch(err){
       document.getElementById('coinDetailSidebar').innerHTML = `<div style="color:var(--negative); font-size:13px;">Couldn't load coin details. ${escapeHtml(err.message || '')}</div>`;
     }
