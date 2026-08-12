@@ -532,7 +532,26 @@
     </table>
   </div>
   <div class="pagination-bar" id="paginationBottom"></div>
-  <div class="footer-note">Data from CoinGecko · refreshes automatically every 45s</div>
+  <div id="coinDetailView" style="display:none;">
+    <button id="coinDetailBackBtn" style="background:var(--surface-2); border:1px solid var(--border); color:var(--text-primary); border-radius:8px; padding:8px 14px; font-family:var(--sans); font-size:13px; cursor:pointer; margin-bottom:16px;">← Back to all coins</button>
+
+    <div style="display:flex; gap:16px; align-items:flex-start;">
+
+      <div id="coinMiniList" style="width:240px; flex-shrink:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); max-height:80vh; overflow-y:auto;">
+        <!-- mini coin list injected here -->
+      </div>
+
+      <div id="coinDetailMain" style="flex:1; min-width:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:20px;">
+        <!-- chart + exchanges injected here -->
+      </div>
+
+      <div id="coinDetailSidebar" style="width:300px; flex-shrink:0; background:var(--surface); border:1px solid var(--border-soft); border-radius:var(--radius); padding:20px;">
+        <!-- stats injected here -->
+      </div>
+
+    </div>
+  </div>
+  <div class="footer-note">Coin Price Tracker by joebuildz · refreshes automatically every 45s</div>
 </div>
 
 <script>
@@ -700,6 +719,13 @@
     });
 
     tableBody.innerHTML = html;
+
+    tableBody.querySelectorAll('tr').forEach((row, i) => {
+      const coin = pageItems[i];
+      if(!coin) return;
+      row.style.cursor = 'pointer';
+      row.addEventListener('click', () => showCoinDetail(coin.id));
+    });
     
     prevPrices = {};
     coins.forEach(c => prevPrices[c.id] = c.current_price);
@@ -741,6 +767,45 @@
       }
     }
   }
+
+  let activeCoinId = null;
+
+  function showCoinDetail(coinId){
+    activeCoinId = coinId;
+    document.getElementById('tableHeaderWrap').style.display = 'none';
+    document.getElementById('tableWrap').style.display = 'none';
+    document.getElementById('paginationTop').style.display = 'none';
+    document.getElementById('paginationBottom').style.display = 'none';
+    document.getElementById('coinDetailView').style.display = 'block';
+    renderCoinMiniList();
+  }
+
+  function hideCoinDetail(){
+    activeCoinId = null;
+    document.getElementById('coinDetailView').style.display = 'none';
+    document.getElementById('tableHeaderWrap').style.display = '';
+    document.getElementById('tableWrap').style.display = '';
+    document.getElementById('paginationTop').style.display = '';
+    document.getElementById('paginationBottom').style.display = '';
+  }
+
+  function renderCoinMiniList(){
+    const container = document.getElementById('coinMiniList');
+    container.innerHTML = coins.map(c => `
+      <div class="mini-coin-row" data-coin-id="${c.id}" style="display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer; border-bottom:1px solid var(--border-soft); ${c.id === activeCoinId ? 'background:var(--surface-2);' : ''}">
+        <span style="width:20px; color:var(--text-muted); font-size:11px; font-family:var(--mono); flex-shrink:0;">${c.market_cap_rank ?? '—'}</span>
+        <img src="${c.image}" alt="" style="width:20px; height:20px; border-radius:50%; flex-shrink:0;">
+        <span style="font-size:12.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.name)}</span>
+        <span style="margin-left:auto; font-family:var(--mono); font-size:12px; color:var(--text-secondary); flex-shrink:0;">${formatCurrency(c.current_price)}</span>
+      </div>
+    `).join('');
+
+    container.querySelectorAll('.mini-coin-row').forEach(row => {
+      row.addEventListener('click', () => showCoinDetail(row.dataset.coinId));
+    });
+  }
+
+  document.getElementById('coinDetailBackBtn').addEventListener('click', hideCoinDetail);
 
   async function fetchData(showSkeleton){
     if(showSkeleton) renderSkeleton();
