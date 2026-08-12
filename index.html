@@ -611,7 +611,7 @@
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
     const color = isPositive ? 'var(--positive)' : 'var(--negative)';
-    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block;">
+    return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:inine-block;">
       <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     </svg>`;
   }
