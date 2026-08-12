@@ -355,6 +355,8 @@
   .skeleton-row td{padding:14px 16px;}
   thead th.col-sparkline, td.col-sparkline{
     text-align:center;
+    padding-left:8px;
+    padding-right:16px;
   }
   thead th.col-1h, td.col-1h,
   thead th.col-change, td.col-change,
@@ -414,6 +416,7 @@
       padding:10px 12px;
       font-size:12.5px;
     }
+    .search-wrap{ width:120px; }
   }
   .pagination-bar{
     display:flex;
@@ -842,7 +845,7 @@
       tableHeaderWrap.scrollLeft = tableWrap.scrollLeft;
     });
   }
-  
+
   window.addEventListener('resize', updateTopbarHeightVar);
   updateTopbarHeightVar();
 
