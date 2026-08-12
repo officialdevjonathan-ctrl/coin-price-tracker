@@ -469,13 +469,6 @@
           <div class="dot" id="liveDot"></div>
           <span id="lastUpdated">Loading…</span>
         </div>
-        <div class="search-wrap">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="7"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="text" id="searchInput" placeholder="Search name or symbol…" autocomplete="off">
-        </div>
         <select id="refreshSelect" style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:8px 10px;">
           <option value="5000">5s</option>
           <option value="10000">10s</option>
@@ -483,6 +476,13 @@
           <option value="30000">30s</option>
           <option value="45000" selected>45s</option>
         </select>
+        <div class="search-wrap">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search name or symbol…" autocomplete="off">
+        </div>        
         <select id="pageSizeSelect" style="background:var(--surface-2); border:1px solid var(--border); border-radius:8px; color:var(--text-primary); font-family:var(--mono); font-size:12px; padding:8px 10px;">
           <option value="50">50 / page</option>
           <option value="100" selected>100 / page</option>
