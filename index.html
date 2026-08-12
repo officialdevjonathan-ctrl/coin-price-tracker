@@ -727,16 +727,27 @@
     });
   }
 
+  async function fetchWithRetry(url, retries = 2, delayMs = 1000){
+    for(let attempt = 0; attempt <= retries; attempt++){
+      try{
+        const res = await fetch(url);
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      }catch(err){
+        const isLastAttempt = attempt === retries;
+        if(isLastAttempt) throw err;
+        await new Promise(resolve => setTimeout(resolve, delayMs * (attempt + 1)));
+      }
+    }
+  }
+
   async function fetchData(showSkeleton){
     if(showSkeleton) renderSkeleton();
     liveDot.classList.add('fetching');
     try{
       const requests = [];
       for(let p = 1; p <= PAGES_TO_FETCH; p++){
-        requests.push(fetch(`${API_URL_BASE}&page=${p}`).then(res => {
-          if(!res.ok) throw new Error('HTTP ' + res.status);
-          return res.json();
-        }));
+        requests.push(fetchWithRetry(`${API_URL_BASE}&page=${p}`));
       }
       const pages = await Promise.all(requests);
       coins = pages.flat();
