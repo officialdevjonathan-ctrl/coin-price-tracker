@@ -497,7 +497,7 @@
 
 <script>
 (function(){
-  const PAGES_TO_FETCH = 4;
+  const PAGES_TO_FETCH = 2;
   const COINS_PER_FETCH = 250;
   const API_URL_BASE = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d&per_page=" + COINS_PER_FETCH;
     
@@ -745,11 +745,14 @@
     if(showSkeleton) renderSkeleton();
     liveDot.classList.add('fetching');
     try{
-      const requests = [];
+      const pages = [];
       for(let p = 1; p <= PAGES_TO_FETCH; p++){
-        requests.push(fetchWithRetry(`${API_URL_BASE}&page=${p}`));
+        const pageData = await fetchWithRetry(`${API_URL_BASE}&page=${p}`);
+        pages.push(pageData);
+        if(p < PAGES_TO_FETCH){
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
       }
-      const pages = await Promise.all(requests);
       coins = pages.flat();
       lastFetchTime = Date.now();
       errorBanner.style.display = 'none';
