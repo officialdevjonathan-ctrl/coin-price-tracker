@@ -1033,36 +1033,47 @@
     });
   }
 
-  function renderCoinDetailSidebarSection4(){
+  function renderCoinDetailSidebarSection5(){
     if(!coinDetailData) return '';
-    const symbol = (coinDetailData.symbol || '').toUpperCase();
+    const d = coinDetailData;
+    const m = d.market_data || {};
+
+    const rows = [
+      ['Birthday', formatDate(d.genesis_date)],
+      ['All-Time High', `${formatCurrency(m.ath?.usd)} · ${formatDate(m.ath_date?.usd)}`],
+      ['All-Time Low', `${formatCurrency(m.atl?.usd)} · ${formatDate(m.atl_date?.usd)}`],
+      ['24h Range', `${formatCurrency(m.low_24h?.usd)} – ${formatCurrency(m.high_24h?.usd)}`],
+    ];
+
+    const categories = (d.categories || []).filter(c => c).slice(0, 3);
+    const dev = d.developer_data || {};
+    const hasDevData = dev.stars || dev.forks || dev.commit_count_4_weeks;
+
     return `
       <div class="sidebar-section">
-        <div class="sidebar-stat-label" style="margin-bottom:10px;">${symbol} to USD Converter</div>
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <input id="converterCoinInput" type="number" value="1" style="flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text-primary); font-family:var(--mono); font-size:13px;">
-          <span class="sidebar-stat-label" style="width:40px;">${symbol}</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <input id="converterUsdInput" type="number" style="flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text-primary); font-family:var(--mono); font-size:13px;">
-          <span class="sidebar-stat-label" style="width:40px;">USD</span>
-        </div>
+        ${categories.length ? `
+          <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px;">
+            ${categories.map(c => `<span class="sidebar-link-pill" style="color:var(--text-secondary);">${escapeHtml(c)}</span>`).join('')}
+          </div>
+        ` : ''}
+        ${rows.map(([label, value]) => `
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">${label}</span>
+            <span class="sidebar-stat-value">${value}</span>
+          </div>
+        `).join('')}
+        ${hasDevData ? `
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">GitHub Stars</span>
+            <span class="sidebar-stat-value">${dev.stars ?? 'N/A'}</span>
+          </div>
+          <div class="sidebar-stat-row">
+            <span class="sidebar-stat-label">Commits (4wk)</span>
+            <span class="sidebar-stat-value">${dev.commit_count_4_weeks ?? 'N/A'}</span>
+          </div>
+        ` : ''}
       </div>
     `;
-  }
-
-  function wireUpConverter(){
-    const coinInput = document.getElementById('converterCoinInput');
-    const usdInput = document.getElementById('converterUsdInput');
-    if(!coinInput || !usdInput || !coinDetailData) return;
-    const price = coinDetailData.market_data?.current_price?.usd || 0;
-    usdInput.value = (1 * price).toFixed(2);
-    coinInput.addEventListener('input', () => {
-      usdInput.value = ((parseFloat(coinInput.value) || 0) * price).toFixed(2);
-    });
-    usdInput.addEventListener('input', () => {
-      coinInput.value = price ? ((parseFloat(usdInput.value) || 0) / price).toFixed(6) : 0;
-    });
   }
 
   function renderCoinDetailSidebar(){
