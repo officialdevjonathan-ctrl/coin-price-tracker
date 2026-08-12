@@ -840,7 +840,7 @@
 
   let activeCoinId = null;
 
-  function showCoinDetail(coinId){
+  async function showCoinDetail(coinId){
     activeCoinId = coinId;
     document.getElementById('tableHeaderWrap').style.display = 'none';
     document.getElementById('tableWrap').style.display = 'none';
@@ -848,6 +848,30 @@
     document.getElementById('paginationBottom').style.display = 'none';
     document.getElementById('coinDetailView').style.display = 'block';
     renderCoinMiniList();
+    await loadCoinDetailData(coinId);
+  }
+
+  function renderCoinDetailSidebarSection1(){
+    if(!coinDetailData) return;
+    const d = coinDetailData;
+    const price = d.market_data?.current_price?.usd;
+    const change24h = d.market_data?.price_change_percentage_24h;
+    const changeClass = change24h >= 0 ? 'pos' : 'neg';
+    const changeArrow = change24h >= 0 ? '▲' : '▼';
+
+    document.getElementById('coinDetailSidebar').innerHTML = `
+      <div style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+          <img src="${d.image?.small}" alt="" style="width:28px; height:28px; border-radius:50%;">
+          <span style="font-family:var(--display); font-size:16px; font-weight:600;">${escapeHtml(d.name)}</span>
+          <span style="font-family:var(--mono); font-size:11px; color:var(--text-muted); text-transform:uppercase;">${escapeHtml(d.symbol)}</span>
+        </div>
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:var(--mono); font-size:26px; font-weight:600;">${formatCurrency(price)}</span>
+          <span class="change-pill ${changeClass}">${changeArrow} ${Math.abs(change24h ?? 0).toFixed(2)}%</span>
+        </div>
+      </div>
+    `;
   }
 
   function hideCoinDetail(){
