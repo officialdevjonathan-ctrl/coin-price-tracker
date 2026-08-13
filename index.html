@@ -349,6 +349,7 @@
     display:flex;
     flex-direction:column;
     justify-content:center;
+    position:relative;
   }
   .chart-loading{
     text-align:center;
@@ -363,6 +364,27 @@
     font-family:var(--mono);
     font-size:11px;
     color:var(--text-muted);
+  }
+  .chart-tooltip{
+    position:absolute;
+    background:var(--surface-3);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:8px 12px;
+    pointer-events:none;
+    transition:opacity .1s;
+    z-index:5;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  }
+  .chart-tooltip-date{
+    font-size:11px;
+    color:var(--text-muted);
+    margin-bottom:3px;
+  }
+  .chart-tooltip-price{
+    font-family:var(--mono);
+    font-size:14px;
+    font-weight:600;
   }
 
   @container (max-width: 480px){
@@ -1297,7 +1319,10 @@
         </defs>
         <polygon points="${areaPoints}" fill="url(#${gradientId})"/>
         <polyline points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        <line id="chartCrosshair" x1="0" y1="${padding}" x2="0" y2="${h - padding}" stroke="var(--border)" stroke-width="1" stroke-dasharray="3,3" style="opacity:0;"/>
+        <circle id="chartDot" cx="0" cy="0" r="4" fill="${lineColor}" stroke="var(--bg)" stroke-width="2" style="opacity:0;"/>
       </svg>
+      <div id="chartTooltip" class="chart-tooltip" style="opacity:0;"></div>
       <div class="chart-axis-row">
         <span>${escapeHtml(firstDate)} · ${formatCurrency(min)}</span>
         <span>${escapeHtml(lastDate)} · ${formatCurrency(max)}</span>
@@ -1327,10 +1352,73 @@
 
       if(activeCoinId === coinId && currentChartTimeframe === timeframe){
         container.innerHTML = buildLineChartSvg(prices);
+        setupChartInteractivity(prices);
       }
     }catch(err){
       container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load chart data.</div>`;
     }
+  }
+
+  function setupChartInteractivity(prices){
+    const svg = document.querySelector('#chartContainer svg');
+    const crosshair = document.getElementById('chartCrosshair');
+    const dot = document.getElementById('chartDot');
+    const tooltip = document.getElementById('chartTooltip');
+    if(!svg || !prices || prices.length < 2) return;
+
+    const w = 700, h = 260, padding = 10;
+    const values = prices.map(p => p[1]);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    function handleMove(clientX, clientY){
+      const rect = svg.getBoundingClientRect();
+      const scaleX = w / rect.width;
+      const svgX = (clientX - rect.left) * scaleX;
+
+      const ratio = Math.min(1, Math.max(0, (svgX - padding) / (w - padding * 2)));
+      const index = Math.round(ratio * (prices.length - 1));
+      const point = prices[index];
+      if(!point) return;
+
+      const x = (index / (prices.length - 1)) * (w - padding * 2) + padding;
+      const y = h - padding - ((point[1] - min) / range) * (h - padding * 2);
+
+      crosshair.setAttribute('x1', x);
+      crosshair.setAttribute('x2', x);
+      crosshair.style.opacity = '1';
+      dot.setAttribute('cx', x);
+      dot.setAttribute('cy', y);
+      dot.style.opacity = '1';
+
+      const dateStr = new Date(point[0]).toLocaleString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      tooltip.innerHTML = `<div class="chart-tooltip-date">${escapeHtml(dateStr)}</div><div class="chart-tooltip-price">${formatCurrency(point[1])}</div>`;
+      tooltip.style.opacity = '1';
+
+      const containerRect = svg.parentElement.getBoundingClientRect();
+      const pxX = (x / w) * rect.width;
+      let left = pxX + 14;
+      if(left + 130 > containerRect.width) left = pxX - 144;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = '10px';
+    }
+
+    svg.addEventListener('mousemove', (e) => handleMove(e.clientX, e.clientY));
+    svg.addEventListener('mouseleave', () => {
+      crosshair.style.opacity = '0';
+      dot.style.opacity = '0';
+      tooltip.style.opacity = '0';
+    });
+    svg.addEventListener('touchmove', (e) => {
+      const touch = e.touches[0];
+      if(touch) handleMove(touch.clientX, touch.clientY);
+    }, { passive:true });
+    svg.addEventListener('touchend', () => {
+      crosshair.style.opacity = '0';
+      dot.style.opacity = '0';
+      tooltip.style.opacity = '0';
+    });
   }
 
   function renderCoinDetailSidebar(){
