@@ -1457,6 +1457,25 @@
     document.getElementById('paginationBottom').style.display = '';
   }
 
+  function updateActiveCoinDetailLive(){
+    if(!activeCoinId || !coinDetailData) return;
+    const updatedCoin = coins.find(c => c.id === activeCoinId);
+    if(!updatedCoin) return;
+
+    const m = coinDetailData.market_data = coinDetailData.market_data || {};
+    m.current_price = { ...m.current_price, usd: updatedCoin.current_price };
+    m.price_change_percentage_24h = updatedCoin.price_change_percentage_24h_in_currency;
+    m.market_cap = { ...m.market_cap, usd: updatedCoin.market_cap };
+    m.total_volume = { ...m.total_volume, usd: updatedCoin.total_volume };
+    m.circulating_supply = updatedCoin.circulating_supply;
+    m.high_24h = { ...m.high_24h, usd: updatedCoin.high_24h };
+    m.low_24h = { ...m.low_24h, usd: updatedCoin.low_24h };
+
+    renderCoinMiniList();
+    renderCoinDetailSidebar();
+    renderCoinDetailMain();
+  }
+
   function renderCoinMiniList(){
     const container = document.getElementById('coinMiniList');
     container.innerHTML = coins.map(c => `
@@ -1491,6 +1510,7 @@
       lastFetchTime = Date.now();
       errorBanner.style.display = 'none';
       render();
+      updateActiveCoinDetailLive();
     }catch(err){
       errorBanner.style.display = 'flex';
       errorBanner.className = 'error-banner';
