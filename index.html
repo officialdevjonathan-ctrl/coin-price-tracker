@@ -316,6 +316,55 @@
     font-weight:500;
   }
 
+  .chart-section{
+    margin-top:4px;
+  }
+  .chart-timeframe-row{
+    display:flex;
+    gap:6px;
+    margin-bottom:16px;
+  }
+  .timeframe-btn{
+    background:transparent;
+    border:1px solid var(--border);
+    color:var(--text-secondary);
+    border-radius:6px;
+    padding:5px 12px;
+    font-family:var(--mono);
+    font-size:12px;
+    cursor:pointer;
+    transition:background .12s, color .12s;
+  }
+  .timeframe-btn:hover{
+    background:var(--surface-2);
+    color:var(--text-primary);
+  }
+  .timeframe-btn.active{
+    background:var(--accent-dim);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .chart-container{
+    min-height:260px;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+  }
+  .chart-loading{
+    text-align:center;
+    color:var(--text-muted);
+    font-size:13px;
+    padding:60px 0;
+  }
+  .chart-axis-row{
+    display:flex;
+    justify-content:space-between;
+    margin-top:8px;
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--text-muted);
+  }
+
   @container (max-width: 480px){
     .summary-mcap{ display:none; }
   }
@@ -1173,9 +1222,115 @@
     `;
   }
 
+  let currentChartTimeframe = '7d';
+  const chartDataCache = {};
+
   function renderCoinDetailMain(){
-    const html = renderCoinDetailMainSummary();
-    document.getElementById('coinDetailMainContent').innerHTML = html;
+    const summaryHtml = renderCoinDetailMainSummary();
+    const timeframes = [
+      { key:'24h', label:'24H' },
+      { key:'7d', label:'7D' },
+      { key:'30d', label:'30D' },
+      { key:'90d', label:'90D' },
+      { key:'1y', label:'1Y' },
+      { key:'max', label:'MAX' },
+    ];
+
+    const chartHtml = `
+      <div class="chart-section">
+        <div class="chart-timeframe-row">
+          ${timeframes.map(t => `<button class="timeframe-btn ${t.key === currentChartTimeframe ? 'active' : ''}" data-timeframe="${t.key}">${t.label}</button>`).join('')}
+        </div>
+        <div id="chartContainer" class="chart-container">
+          <div class="chart-loading">Loading chart…</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml;
+
+    document.querySelectorAll('.timeframe-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentChartTimeframe = btn.dataset.timeframe;
+        document.querySelectorAll('.timeframe-btn').forEach(b => b.classList.toggle('active', b.dataset.timeframe === currentChartTimeframe));
+        loadChartData(activeCoinId, currentChartTimeframe);
+      });
+    });
+
+    loadChartData(activeCoinId, currentChartTimeframe);
+  }
+
+    function buildLineChartSvg(prices){
+    if(!prices || prices.length < 2){
+      return '<div class="chart-loading">Not enough data to display a chart.</div>';
+    }
+
+    const w = 700, h = 260, padding = 10;
+    const values = prices.map(p => p[1]);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+
+    const points = prices.map((p, i) => {
+      const x = (i / (prices.length - 1)) * (w - padding * 2) + padding;
+      const y = h - padding - ((p[1] - min) / range) * (h - padding * 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    });
+
+    const isUp = values[values.length - 1] >= values[0];
+    const lineColor = isUp ? 'var(--positive)' : 'var(--negative)';
+    const gradientId = 'chartGradient' + Math.round(Math.random() * 100000);
+
+    const linePoints = points.join(' ');
+    const areaPoints = `${padding},${h - padding} ` + linePoints + ` ${w - padding},${h - padding}`;
+
+    const firstDate = new Date(prices[0][0]).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+    const lastDate = new Date(prices[prices.length - 1][0]).toLocaleDateString('en-US', { month:'short', day:'numeric' });
+
+    return `
+      <svg viewBox="0 0 ${w} ${h}" style="width:100%; height:auto; display:block;">
+        <defs>
+          <linearGradient id="${gradientId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${lineColor}" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="${lineColor}" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <polygon points="${areaPoints}" fill="url(#${gradientId})"/>
+        <polyline points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <div class="chart-axis-row">
+        <span>${escapeHtml(firstDate)} · ${formatCurrency(min)}</span>
+        <span>${escapeHtml(lastDate)} · ${formatCurrency(max)}</span>
+      </div>
+    `;
+  }
+
+  const TIMEFRAME_TO_DAYS = { '24h':'1', '7d':'7', '30d':'30', '90d':'90', '1y':'365', 'max':'max' };
+
+  async function loadChartData(coinId, timeframe){
+    const cacheKey = `${coinId}_${timeframe}`;
+    const container = document.getElementById('chartContainer');
+    if(!container) return;
+
+    if(chartDataCache[cacheKey]){
+      container.innerHTML = buildLineChartSvg(chartDataCache[cacheKey]);
+      return;
+    }
+
+    container.innerHTML = '<div class="chart-loading">Loading chart…</div>';
+    try{
+      const days = TIMEFRAME_TO_DAYS[timeframe];
+      const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}${CG_API_KEY ? '&x_cg_demo_api_key=' + CG_API_KEY : ''}`;
+      const data = await fetchWithRetry(url);
+      const prices = data.prices || [];
+      chartDataCache[cacheKey] = prices;
+
+      if(activeCoinId === coinId && currentChartTimeframe === timeframe){
+        container.innerHTML = buildLineChartSvg(prices);
+      }
+    }catch(err){
+      container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load chart data.</div>`;
+    }
   }
 
   function renderCoinDetailSidebar(){
