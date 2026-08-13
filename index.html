@@ -365,6 +365,52 @@
     font-size:11px;
     color:var(--text-muted);
   }
+  .exchanges-section{
+    margin-top:24px;
+    padding-top:20px;
+    border-top:1px solid var(--border-soft);
+  }
+  .exchanges-header{
+    font-family:var(--display);
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:14px;
+  }
+  .exchanges-table{
+    display:flex;
+    flex-direction:column;
+  }
+  .exchanges-row{
+    display:grid;
+    grid-template-columns:1.4fr 1fr 1fr 1fr 0.6fr 0.8fr;
+    align-items:center;
+    gap:8px;
+    padding:9px 0;
+    border-bottom:1px solid var(--border-soft);
+    font-family:var(--mono);
+    font-size:12.5px;
+  }
+  .exchanges-row-head{
+    font-family:var(--sans);
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--text-muted);
+    border-bottom:1px solid var(--border);
+  }
+  .exchange-name{
+    font-family:var(--sans);
+    font-weight:500;
+  }
+  .exchange-pair{
+    color:var(--text-secondary);
+  }
+  .trust-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+  }
   .chart-tooltip{
     position:absolute;
     background:var(--surface-3);
@@ -1269,7 +1315,16 @@
       </div>
     `;
 
-    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml;
+    const exchangesHtml = `
+      <div class="exchanges-section">
+        <div class="exchanges-header">Markets</div>
+        <div id="exchangesContainer" class="exchanges-container">
+          <div class="chart-loading">Loading markets…</div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml + exchangesHtml;
 
     document.querySelectorAll('.timeframe-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1280,8 +1335,9 @@
     });
 
     loadChartData(activeCoinId, currentChartTimeframe);
+    loadExchangesData(activeCoinId);
   }
-
+  
     function buildLineChartSvg(prices){
     if(!prices || prices.length < 2){
       return '<div class="chart-loading">Not enough data to display a chart.</div>';
@@ -1419,6 +1475,66 @@
       dot.style.opacity = '0';
       tooltip.style.opacity = '0';
     });
+  }
+
+  const exchangeDataCache = {};
+
+  async function loadExchangesData(coinId){
+    const container = document.getElementById('exchangesContainer');
+    if(!container) return;
+
+    if(exchangeDataCache[coinId]){
+      container.innerHTML = buildExchangesTable(exchangeDataCache[coinId]);
+      return;
+    }
+
+    try{
+      const url = `https://api.coingecko.com/api/v3/coins/${coinId}/tickers?include_exchange_logo=false${CG_API_KEY ? '&x_cg_demo_api_key=' + CG_API_KEY : ''}`;
+      const data = await fetchWithRetry(url);
+      const tickers = (data.tickers || [])
+        .filter(t => !t.is_anomaly && !t.is_stale)
+        .sort((a, b) => (b.converted_volume?.usd || 0) - (a.converted_volume?.usd || 0))
+        .slice(0, 15);
+
+      exchangeDataCache[coinId] = tickers;
+
+      if(activeCoinId === coinId){
+        container.innerHTML = buildExchangesTable(tickers);
+      }
+    }catch(err){
+      container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load market data.</div>`;
+    }
+  }
+
+  function buildExchangesTable(tickers){
+    if(!tickers || tickers.length === 0){
+      return '<div class="chart-loading">No market data available.</div>';
+    }
+
+    const trustColors = { green:'var(--positive)', yellow:'#F0B429', red:'var(--negative)' };
+
+    return `
+      <div class="exchanges-table">
+        <div class="exchanges-row exchanges-row-head">
+          <span>Exchange</span>
+          <span>Pair</span>
+          <span>Price</span>
+          <span>24h Volume</span>
+          <span>Trust</span>
+          <span></span>
+        </div>
+        ${tickers.map(t => `
+          <div class="exchanges-row">
+            <span class="exchange-name">${escapeHtml(t.market?.name || 'Unknown')}</span>
+            <span class="exchange-pair">${escapeHtml(t.base)}/${escapeHtml(t.target)}</span>
+            <span>${formatCurrency(t.converted_last?.usd)}</span>
+            <span>${formatCompact(t.converted_volume?.usd)}</span>
+            <span><span class="trust-dot" style="background:${trustColors[t.trust_score] || 'var(--text-muted)'};"></span></span>
+            <span>${t.trade_url ? `<a href="${t.trade_url}" target="_blank" rel="noopener" class="sidebar-link-pill">Trade ↗</a>` : ''}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   function renderCoinDetailSidebar(){
