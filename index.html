@@ -1145,14 +1145,14 @@
     `;
   }
 
-  function renderCoinDetailSidebarSection4(){
+  function renderCoinDetailSidebarSection4(preservedAmount){
     if(!coinDetailData) return '';
     const symbol = (coinDetailData.symbol || '').toUpperCase();
     return `
       <div class="sidebar-section">
         <div class="sidebar-stat-label" style="margin-bottom:10px;">${symbol} to USD Converter</div>
         <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <input id="converterCoinInput" type="number" value="1" style="flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text-primary); font-family:var(--mono); font-size:13px;">
+          <input id="converterCoinInput" type="number" value="${preservedAmount}" style="flex:1; background:var(--surface-2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text-primary); font-family:var(--mono); font-size:13px;">
           <span class="sidebar-stat-label" style="width:40px;">${symbol}</span>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
@@ -1168,7 +1168,7 @@
     const usdInput = document.getElementById('converterUsdInput');
     if(!coinInput || !usdInput || !coinDetailData) return;
     const price = coinDetailData.market_data?.current_price?.usd || 0;
-    usdInput.value = (1 * price).toFixed(2);
+    usdInput.value = ((parseFloat(coinInput.value) || 0) * price).toFixed(2);
     coinInput.addEventListener('input', () => {
       usdInput.value = ((parseFloat(coinInput.value) || 0) * price).toFixed(2);
     });
@@ -1422,10 +1422,11 @@
   }
 
   function renderCoinDetailSidebar(){
+    const preservedAmount = document.getElementById('converterCoinInput')?.value || '1';
     const html = renderCoinDetailSidebarSection1()
       + renderCoinDetailSidebarSection2()
       + renderCoinDetailSidebarSection3()
-      + renderCoinDetailSidebarSection4()
+      + renderCoinDetailSidebarSection4(preservedAmount)
       + renderCoinDetailSidebarSection5();
     document.getElementById('coinDetailSidebar').innerHTML = html;
     wireUpConverter();
