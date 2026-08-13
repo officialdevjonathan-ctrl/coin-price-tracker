@@ -227,6 +227,8 @@
     border:1px solid var(--border-soft);
     border-radius:var(--radius);
     padding:20px;
+    max-height:80vh;
+    overflow-y:auto;
   }
   .coin-detail-sidebar{
     width:300px;
@@ -235,6 +237,8 @@
     border:1px solid var(--border-soft);
     border-radius:var(--radius);
     padding:20px;
+    max-height:80vh;
+    overflow-y:auto;
   }
   .sidebar-section{
     padding-top:16px;
@@ -294,8 +298,26 @@
   }
   #coinMiniList::-webkit-scrollbar-thumb:hover{
     background:var(--text-muted);
-  }
+  }  
   #coinMiniList{
+    scrollbar-width:thin;
+    scrollbar-color:var(--border) var(--surface);
+  }
+
+  .coin-detail-main::-webkit-scrollbar, .coin-detail-sidebar::-webkit-scrollbar{
+    width:8px;
+  }
+  .coin-detail-main::-webkit-scrollbar-track, .coin-detail-sidebar::-webkit-scrollbar-track{
+    background:var(--surface);
+  }
+  .coin-detail-main::-webkit-scrollbar-thumb, .coin-detail-sidebar::-webkit-scrollbar-thumb{
+    background:var(--border);
+    border-radius:4px;
+  }
+  .coin-detail-main::-webkit-scrollbar-thumb:hover, .coin-detail-sidebar::-webkit-scrollbar-thumb:hover{
+    background:var(--text-muted);
+  }
+  .coin-detail-main, .coin-detail-sidebar{
     scrollbar-width:thin;
     scrollbar-color:var(--border) var(--surface);
   }
@@ -521,6 +543,10 @@
     }
     .coin-detail-main, .coin-detail-sidebar{
       width:100%;
+    }
+    .coin-detail-main, .coin-detail-sidebar{
+      max-height:none;
+      overflow-y:visible;
     }
   }
   .pagination-bar{
