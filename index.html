@@ -229,6 +229,7 @@
     padding:20px;
     max-height:80vh;
     overflow-y:auto;
+    container-type:inline-size;
   }
   .coin-detail-sidebar{
     width:300px;
@@ -274,6 +275,50 @@
   }
   .sidebar-link-pill:hover{
     background:var(--surface-3);
+  }
+
+  .main-summary-row{
+    display:flex;
+    align-items:baseline;
+    gap:20px;
+    padding-bottom:18px;
+    margin-bottom:18px;
+    border-bottom:1px solid var(--border-soft);
+    flex-wrap:nowrap;
+    overflow:hidden;
+  }
+  .summary-price{
+    font-family:var(--mono);
+    font-size:28px;
+    font-weight:600;
+    flex-shrink:0;
+  }
+  .summary-change{
+    flex-shrink:0;
+  }
+  .summary-item{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    flex-shrink:0;
+  }
+  .summary-item-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--text-muted);
+  }
+  .summary-item-value{
+    font-family:var(--mono);
+    font-size:14px;
+    font-weight:500;
+  }
+
+  @container (max-width: 480px){
+    .summary-mcap{ display:none; }
+  }
+  @container (max-width: 360px){
+    .summary-volume{ display:none; }
   }
 
   @media (min-width: 1300px){
@@ -673,7 +718,7 @@
       </div>
 
       <div id="coinDetailMain" class="coin-detail-main">
-        <!-- chart + exchanges injected here -->
+        <div id="coinDetailMainContent"></div>
       </div>
 
       <div id="coinDetailSidebar" class="coin-detail-sidebar">
@@ -1102,6 +1147,35 @@
     `;
   }
 
+  function renderCoinDetailMainSummary(){
+    if(!coinDetailData) return '';
+    const m = coinDetailData.market_data || {};
+    const price = m.current_price?.usd;
+    const change24h = m.price_change_percentage_24h;
+    const changeClass = change24h >= 0 ? 'pos' : 'neg';
+    const changeArrow = change24h >= 0 ? '▲' : '▼';
+
+    return `
+      <div class="main-summary-row">
+        <span class="summary-price">${formatCurrency(price)}</span>
+        <span class="change-pill ${changeClass} summary-change">${changeArrow} ${Math.abs(change24h ?? 0).toFixed(2)}%</span>
+        <span class="summary-item summary-volume">
+          <span class="summary-item-label">24h Vol</span>
+          <span class="summary-item-value">${formatCompact(m.total_volume?.usd)}</span>
+        </span>
+        <span class="summary-item summary-mcap">
+          <span class="summary-item-label">Mkt Cap</span>
+          <span class="summary-item-value">${formatCompact(m.market_cap?.usd)}</span>
+        </span>
+      </div>
+    `;
+  }
+
+  function renderCoinDetailMain(){
+    const html = renderCoinDetailMainSummary();
+    document.getElementById('coinDetailMainContent').innerHTML = html;
+  }
+
   function renderCoinDetailSidebar(){
     const html = renderCoinDetailSidebarSection1()
       + renderCoinDetailSidebarSection2()
@@ -1123,6 +1197,7 @@
       coinDetailData = data;
       console.log('Coin detail data:', data);
       renderCoinDetailSidebar();
+      renderCoinDetailMain();
     }catch(err){
       document.getElementById('coinDetailSidebar').innerHTML = `<div style="color:var(--negative); font-size:13px;">Couldn't load coin details. ${escapeHtml(err.message || '')}</div>`;
     }
