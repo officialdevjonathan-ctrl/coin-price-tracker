@@ -1894,7 +1894,6 @@
       coinDetailData = data;
       console.log('Coin detail data:', data);
       renderCoinDetailSidebar();
-      ();
     }catch(err){
       document.getElementById('coinDetailSidebar').innerHTML = `<div style="color:var(--negative); font-size:13px;">Couldn't load coin details. ${escapeHtml(err.message || '')}</div>`;
     }
