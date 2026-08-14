@@ -411,6 +411,55 @@
     height:8px;
     border-radius:50%;
   }
+  .onchain-columns{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:24px;
+  }
+  .onchain-subheader{
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--text-muted);
+    margin-bottom:10px;
+  }
+  .onchain-table{
+    display:flex;
+    flex-direction:column;
+  }
+  .onchain-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:7px 0;
+    border-bottom:1px solid var(--border-soft);
+    font-size:12px;
+    font-family:var(--mono);
+  }
+  .onchain-rank{
+    color:var(--text-muted);
+    width:16px;
+    flex-shrink:0;
+  }
+  .onchain-address{
+    color:var(--accent);
+    text-decoration:none;
+    flex:1;
+  }
+  .onchain-address:hover{
+    text-decoration:underline;
+  }
+  .onchain-share, .onchain-amount, .onchain-time{
+    color:var(--text-secondary);
+    flex-shrink:0;
+  }
+
+  @media (max-width: 760px){
+    .onchain-columns{
+      grid-template-columns:1fr;
+      gap:20px;
+    }
+  }
   .chart-tooltip{
     position:absolute;
     background:var(--surface-3);
@@ -864,6 +913,7 @@
 <script>
 (function(){
   const CG_API_KEY = "CG-eoiho2wbXn5kKo4KWyL4sAFU";
+  const ETHERSCAN_API_KEY = "X5QA95Q7S7TFBRFZXJBHWVEDEKNF4I4NW8";
   const PAGES_TO_FETCH = 2;
   const COINS_PER_FETCH = 250;
   const API_URL_BASE = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&sparkline=true&price_change_percentage=1h,24h,7d&per_page=" + COINS_PER_FETCH + "&x_cg_demo_api_key=" + CG_API_KEY;
@@ -916,6 +966,12 @@
     if(!dateStr) return 'N/A';
     const d = new Date(dateStr);
     return d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+  }
+
+  function getEthereumContractAddress(){
+    if(!coinDetailData) return null;
+    const addr = coinDetailData.platforms?.ethereum;
+    return addr && addr.length > 0 ? addr : null;
   }
 
   function formatPct(num){
@@ -1341,7 +1397,24 @@
       </div>
     `;
 
-    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml + exchangesHtml;
+    const contractAddress = getEthereumContractAddress();
+    const onChainHtml = contractAddress ? `
+      <div class="exchanges-section" id="onChainSection">
+        <div class="exchanges-header">On-Chain (Ethereum)</div>
+        <div class="onchain-columns">
+          <div>
+            <div class="onchain-subheader">Top Holders</div>
+            <div id="holdersContainer" class="chart-loading">Loading holders…</div>
+          </div>
+          <div>
+            <div class="onchain-subheader">Recent Transactions</div>
+            <div id="transactionsContainer" class="chart-loading">Loading transactions…</div>
+          </div>
+        </div>
+      </div>
+    ` : '';
+    
+    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml + exchangesHtml + onChainHtml;
 
     document.querySelectorAll('.timeframe-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1353,6 +1426,10 @@
 
     loadChartData(activeCoinId, currentChartTimeframe);
     loadExchangesData(activeCoinId);
+    if(contractAddress){
+      loadHoldersData(contractAddress);
+      loadTransactionsData(contractAddress);
+    }
   }
   
     function buildLineChartSvg(prices){
@@ -1551,6 +1628,100 @@
             <span>${t.trade_url ? `<a href="${t.trade_url}" target="_blank" rel="noopener" class="sidebar-link-pill">Trade ↗</a>` : ''}</span>
           </div>
         `).join('')}
+      </div>
+    `;
+  }
+
+  const holdersCache = {};
+
+  async function loadHoldersData(contractAddress){
+    const container = document.getElementById('holdersContainer');
+    if(!container) return;
+
+    if(holdersCache[contractAddress]){
+      container.innerHTML = buildHoldersTable(holdersCache[contractAddress]);
+      return;
+    }
+
+    try{
+      const url = `https://api.ethplorer.io/getTopTokenHolders/${contractAddress}?apiKey=freekey&limit=10`;
+      const data = await fetchWithRetry(url);
+      const holders = data.holders || [];
+      holdersCache[contractAddress] = holders;
+      if(getEthereumContractAddress() === contractAddress){
+        container.innerHTML = buildHoldersTable(holders);
+      }
+    }catch(err){
+      container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load holder data.</div>`;
+    }
+  }
+
+  function buildHoldersTable(holders){
+    if(!holders || holders.length === 0){
+      return '<div class="chart-loading">No holder data available.</div>';
+    }
+    return `
+      <div class="onchain-table">
+        ${holders.map((h, i) => `
+          <div class="onchain-row">
+            <span class="onchain-rank">${i + 1}</span>
+            <a href="https://etherscan.io/address/${h.address}" target="_blank" rel="noopener" class="onchain-address">${h.address.slice(0,6)}…${h.address.slice(-4)}</a>
+            <span class="onchain-share">${h.share.toFixed(2)}%</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  const transactionsCache = {};
+
+  async function loadTransactionsData(contractAddress){
+    const container = document.getElementById('transactionsContainer');
+    if(!container) return;
+
+    if(transactionsCache[contractAddress]){
+      container.innerHTML = buildTransactionsTable(transactionsCache[contractAddress]);
+      return;
+    }
+
+    try{
+      const url = `https://api.etherscan.io/v2/api?chainid=1&module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=10&sort=desc&apikey=${ETHERSCAN_API_KEY}`;
+      const data = await fetchWithRetry(url);
+      const txs = data.result || [];
+      transactionsCache[contractAddress] = txs;
+      if(getEthereumContractAddress() === contractAddress){
+        container.innerHTML = buildTransactionsTable(txs);
+      }
+    }catch(err){
+      container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load transaction data.</div>`;
+    }
+  }
+
+  function formatTimeAgo(unixTimestamp){
+    const seconds = Math.floor(Date.now() / 1000) - parseInt(unixTimestamp, 10);
+    if(seconds < 60) return seconds + 's ago';
+    if(seconds < 3600) return Math.floor(seconds / 60) + 'm ago';
+    if(seconds < 86400) return Math.floor(seconds / 3600) + 'h ago';
+    return Math.floor(seconds / 86400) + 'd ago';
+  }
+
+  function buildTransactionsTable(txs){
+    if(!txs || txs.length === 0){
+      return '<div class="chart-loading">No recent transactions.</div>';
+    }
+    return `
+      <div class="onchain-table">
+        ${txs.map(tx => {
+          const decimals = parseInt(tx.tokenDecimal, 10) || 18;
+          const amount = parseFloat(tx.value) / Math.pow(10, decimals);
+          return `
+            <div class="onchain-row">
+              <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" rel="noopener" class="onchain-address">${tx.hash.slice(0,6)}…${tx.hash.slice(-4)}</a>
+              <span class="onchain-amount">${formatCompactNumber(amount)} ${escapeHtml(tx.tokenSymbol || '')}</span>
+              <span class="onchain-time">${formatTimeAgo(tx.timeStamp)}</span>
+            </div>
+          `;
+        }).join('')}
       </div>
     `;
   }
