@@ -455,6 +455,56 @@
     color:var(--text-secondary);
     flex-shrink:0;
   }
+  .chart-toggle-wrap{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .chart-toggle-label{
+    font-size:12px;
+    color:var(--text-muted);
+    cursor:pointer;
+    transition:color .15s;
+  }
+  .chart-toggle-label.active{
+    color:var(--text-primary);
+    font-weight:600;
+  }
+  .chart-toggle-switch{
+    width:40px;
+    height:22px;
+    border-radius:11px;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    position:relative;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:background .15s, border-color .15s;
+  }
+  .chart-toggle-switch.active{
+    background:var(--accent-dim);
+    border-color:var(--accent);
+  }
+  .chart-toggle-thumb{
+    width:16px;
+    height:16px;
+    border-radius:50%;
+    background:var(--text-secondary);
+    position:absolute;
+    top:2px;
+    left:2px;
+    transition:left .18s, background .18s;
+  }
+  .chart-toggle-switch.active .chart-toggle-thumb{
+    left:20px;
+    background:var(--accent);
+  }
+  .tv-caveat{
+    font-size:11px;
+    color:var(--text-muted);
+    margin-top:8px;
+  }
 
   @media (max-width: 760px){
     .onchain-columns{
@@ -1368,7 +1418,23 @@
   let currentChartTimeframe = '7d';
   const chartDataCache = {};
 
+  let lastRenderedMainCoinId = null;
+  let currentChartView = 'custom';
+  let tvWidgetInitializedForCoin = null;
+
   function renderCoinDetailMain(){
+    const isFreshCoin = lastRenderedMainCoinId !== activeCoinId;
+
+    if(!isFreshCoin){
+      const summaryEl = document.getElementById('mainSummaryContainer');
+      if(summaryEl) summaryEl.innerHTML = renderCoinDetailMainSummary();
+      return;
+    }
+
+    lastRenderedMainCoinId = activeCoinId;
+    currentChartView = 'custom';
+    tvWidgetInitializedForCoin = null;
+
     const summaryHtml = renderCoinDetailMainSummary();
     const timeframes = [
       { key:'24h', label:'24H' },
@@ -1381,11 +1447,24 @@
 
     const chartHtml = `
       <div class="chart-section">
-        <div class="chart-timeframe-row">
-          ${timeframes.map(t => `<button class="timeframe-btn ${t.key === currentChartTimeframe ? 'active' : ''}" data-timeframe="${t.key}">${t.label}</button>`).join('')}
+        <div class="chart-toggle-wrap">
+          <span class="chart-toggle-label active" id="labelCustom">Custom</span>
+          <div class="chart-toggle-switch" id="chartViewToggle">
+            <div class="chart-toggle-thumb"></div>
+          </div>
+          <span class="chart-toggle-label" id="labelTV">TradingView</span>
         </div>
-        <div id="chartContainer" class="chart-container">
-          <div class="chart-loading">Loading chart…</div>
+        <div id="customChartArea">
+          <div class="chart-timeframe-row">
+            ${timeframes.map(t => `<button class="timeframe-btn ${t.key === currentChartTimeframe ? 'active' : ''}" data-timeframe="${t.key}">${t.label}</button>`).join('')}
+          </div>
+          <div id="chartContainer" class="chart-container">
+            <div class="chart-loading">Loading chart…</div>
+          </div>
+        </div>
+        <div id="tradingViewArea" style="display:none;">
+          <div id="tradingview_widget_container" style="height:400px;"></div>
+          <div class="tv-caveat">Symbol matched automatically against Binance — may not be accurate for every coin.</div>
         </div>
       </div>
     `;
@@ -1415,8 +1494,8 @@
         </div>
       </div>
     ` : '';
-    
-    document.getElementById('coinDetailMainContent').innerHTML = summaryHtml + chartHtml + exchangesHtml + onChainHtml;
+
+    document.getElementById('coinDetailMainContent').innerHTML = `<div id="mainSummaryContainer">${summaryHtml}</div>` + chartHtml + exchangesHtml + onChainHtml;
 
     document.querySelectorAll('.timeframe-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1425,6 +1504,8 @@
         loadChartData(activeCoinId, currentChartTimeframe);
       });
     });
+
+    document.getElementById('chartViewToggle').addEventListener('click', toggleChartView);
 
     loadChartData(activeCoinId, currentChartTimeframe);
     loadExchangesData(activeCoinId);
