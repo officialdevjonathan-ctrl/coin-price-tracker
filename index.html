@@ -1764,6 +1764,61 @@
     `;
   }
 
+  function toggleChartView(){
+    currentChartView = currentChartView === 'custom' ? 'tradingview' : 'custom';
+
+    document.getElementById('customChartArea').style.display = currentChartView === 'custom' ? 'block' : 'none';
+    document.getElementById('tradingViewArea').style.display = currentChartView === 'tradingview' ? 'block' : 'none';
+    document.getElementById('labelCustom').classList.toggle('active', currentChartView === 'custom');
+    document.getElementById('labelTV').classList.toggle('active', currentChartView === 'tradingview');
+    document.getElementById('chartViewToggle').classList.toggle('active', currentChartView === 'tradingview');
+
+    if(currentChartView === 'tradingview'){
+      initTradingViewWidget();
+    }
+  }
+
+  let tvScriptLoaded = false;
+  let tvScriptLoading = null;
+
+  function loadTradingViewScript(){
+    if(tvScriptLoaded) return Promise.resolve();
+    if(tvScriptLoading) return tvScriptLoading;
+    tvScriptLoading = new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.onload = () => { tvScriptLoaded = true; resolve(); };
+      document.head.appendChild(script);
+    });
+    return tvScriptLoading;
+  }
+
+  async function initTradingViewWidget(){
+    if(!coinDetailData) return;
+    if(tvWidgetInitializedForCoin === activeCoinId) return;
+    await loadTradingViewScript();
+    const container = document.getElementById('tradingview_widget_container');
+    if(!container) return;
+    container.innerHTML = '';
+    const symbol = (coinDetailData.symbol || '').toUpperCase();
+    new TradingView.widget({
+      width: '100%',
+      height: 400,
+      symbol: `BINANCE:${symbol}USDT`,
+      interval: 'D',
+      timezone: 'Etc/UTC',
+      theme: 'dark',
+      style: '1',
+      locale: 'en',
+      toolbar_bg: '#131720',
+      enable_publishing: false,
+      hide_top_toolbar: false,
+      save_image: false,
+      container_id: 'tradingview_widget_container'
+    });
+    tvWidgetInitializedForCoin = activeCoinId;
+  }
+
   const transactionsCache = {};
 
   async function loadTransactionsData(contractAddress){
@@ -1839,7 +1894,7 @@
       coinDetailData = data;
       console.log('Coin detail data:', data);
       renderCoinDetailSidebar();
-      renderCoinDetailMain();
+      ();
     }catch(err){
       document.getElementById('coinDetailSidebar').innerHTML = `<div style="color:var(--negative); font-size:13px;">Couldn't load coin details. ${escapeHtml(err.message || '')}</div>`;
     }
