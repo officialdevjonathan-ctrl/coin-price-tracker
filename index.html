@@ -404,6 +404,8 @@
   }
   .exchange-pair{
     color:var(--text-secondary);
+    overflow-wrap:break-word;
+    white-space:normal;
   }
   .trust-dot{
     display:inline-block;
@@ -1601,6 +1603,14 @@
     }
   }
 
+  function shortenIfAddress(str){
+    if(!str) return str;
+    if(str.startsWith('0x') && str.length > 12){
+      return str.slice(0, 6) + '…' + str.slice(-4);
+    }
+    return str;
+  }
+
   function buildExchangesTable(tickers){
     if(!tickers || tickers.length === 0){
       return '<div class="chart-loading">No market data available.</div>';
@@ -1621,7 +1631,7 @@
         ${tickers.map(t => `
           <div class="exchanges-row">
             <span class="exchange-name">${escapeHtml(t.market?.name || 'Unknown')}</span>
-            <span class="exchange-pair">${escapeHtml(t.base)}/${escapeHtml(t.target)}</span>
+            <span class="exchange-pair">${escapeHtml(shortenIfAddress(t.base))}/${escapeHtml(shortenIfAddress(t.target))}</span>
             <span>${formatCurrency(t.converted_last?.usd)}</span>
             <span>${formatCompact(t.converted_volume?.usd)}</span>
             <span><span class="trust-dot" style="background:${trustColors[t.trust_score] || 'var(--text-muted)'};"></span></span>
