@@ -1605,7 +1605,7 @@
 
   function shortenIfAddress(str){
     if(!str) return str;
-    if(str.startsWith('0x') && str.length > 12){
+    if(/^0x/i.test(str) && str.length > 12){
       return str.slice(0, 6) + '…' + str.slice(-4);
     }
     return str;
