@@ -1846,7 +1846,6 @@
         container.innerHTML = buildTransactionsTable(txs);
         container.classList.remove('chart-loading');
       }
-      }
     }catch(err){
       container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load transaction data.</div>`;
     }
