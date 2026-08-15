@@ -423,20 +423,26 @@
     text-transform:uppercase;
     letter-spacing:0.05em;
     color:var(--text-muted);
-    margin-bottom:10px;
+    margin-bottom:6px;
   }
   .onchain-table{
     display:flex;
     flex-direction:column;
   }
   .onchain-row{
-    display:flex;
+    display:grid;
     align-items:center;
     gap:8px;
     padding:7px 0;
     border-bottom:1px solid var(--border-soft);
     font-size:12px;
     font-family:var(--mono);
+  }
+  .holder-row{
+    grid-template-columns:18px 1fr auto;
+  }
+  .tx-row{
+    grid-template-columns:1fr auto auto;
   }
   .onchain-rank{
     color:var(--text-muted);
@@ -1754,7 +1760,7 @@
     return `
       <div class="onchain-table">
         ${holders.map((h, i) => `
-          <div class="onchain-row">
+          <div class="onchain-row holder-row">
             <span class="onchain-rank">${i + 1}</span>
             <a href="https://etherscan.io/address/${h.address}" target="_blank" rel="noopener" class="onchain-address">${h.address.slice(0,6)}…${h.address.slice(-4)}</a>
             <span class="onchain-share">${h.share.toFixed(2)}%</span>
@@ -1861,7 +1867,7 @@
           const decimals = parseInt(tx.tokenDecimal, 10) || 18;
           const amount = parseFloat(tx.value) / Math.pow(10, decimals);
           return `
-            <div class="onchain-row">
+            <div class="onchain-row tx-row">
               <a href="https://etherscan.io/tx/${tx.hash}" target="_blank" rel="noopener" class="onchain-address">${tx.hash.slice(0,6)}…${tx.hash.slice(-4)}</a>
               <span class="onchain-amount">${formatCompactNumber(amount)} ${escapeHtml(tx.tokenSymbol || '')}</span>
               <span class="onchain-time">${formatTimeAgo(tx.timeStamp)}</span>
