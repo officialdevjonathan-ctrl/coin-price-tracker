@@ -380,15 +380,24 @@
     display:flex;
     flex-direction:column;
   }
+  .exchanges-table-scroll{
+    overflow-x:auto;
+  }
+  .exchanges-table{
+    display:flex;
+    flex-direction:column;
+    min-width:820px;
+  }
   .exchanges-row{
     display:grid;
-    grid-template-columns:1.4fr 1fr 1fr 1fr 0.6fr 0.8fr;
+    grid-template-columns:1.3fr 0.9fr 0.8fr 0.7fr 0.9fr 0.6fr 0.5fr 0.8fr 0.7fr;
     align-items:center;
     gap:8px;
-    padding:9px 0;
+    padding:9px 4px;
     border-bottom:1px solid var(--border-soft);
     font-family:var(--mono);
-    font-size:12.5px;
+    font-size:12px;
+    white-space:nowrap;
   }
   .exchanges-row-head{
     font-family:var(--sans);
@@ -412,6 +421,29 @@
     width:8px;
     height:8px;
     border-radius:50%;
+  }
+  .exch-sortable{
+    cursor:pointer;
+    user-select:none;
+  }
+  .exch-sortable:hover{
+    color:var(--text-primary);
+  }
+  .exch-sortable.active-sort{
+    color:var(--accent);
+  }
+  .sort-arrow-sm{
+    font-size:9px;
+  }
+  .exchanges-pagination{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-top:12px;
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--text-secondary);
   }
   .onchain-columns{
     display:grid;
@@ -1664,12 +1696,22 @@
 
   const exchangeDataCache = {};
 
+  let currentExchangeTickers = [];
+  let exchangeSortKey = 'volume';
+  let exchangeSortDir = 'desc';
+  let exchangePage = 1;
+  const EXCHANGES_PER_PAGE = 10;
+
   async function loadExchangesData(coinId){
     const container = document.getElementById('exchangesContainer');
     if(!container) return;
+    exchangePage = 1;
 
     if(exchangeDataCache[coinId]){
-      container.innerHTML = buildExchangesTable(exchangeDataCache[coinId]);
+      currentExchangeTickers = exchangeDataCache[coinId];
+      container.innerHTML = buildExchangesTable(currentExchangeTickers);
+      container.classList.remove('chart-loading');
+      wireUpExchangesInteractivity();
       return;
     }
 
@@ -1679,12 +1721,15 @@
       const tickers = (data.tickers || [])
         .filter(t => !t.is_anomaly && !t.is_stale)
         .sort((a, b) => (b.converted_volume?.usd || 0) - (a.converted_volume?.usd || 0))
-        .slice(0, 15);
+        .slice(0, 50);
 
       exchangeDataCache[coinId] = tickers;
 
       if(activeCoinId === coinId){
+        currentExchangeTickers = tickers;
         container.innerHTML = buildExchangesTable(tickers);
+        container.classList.remove('chart-loading');
+        wireUpExchangesInteractivity();
       }
     }catch(err){
       container.innerHTML = `<div class="chart-loading" style="color:var(--negative);">Couldn't load market data.</div>`;
@@ -1705,29 +1750,101 @@
     }
 
     const trustColors = { green:'var(--positive)', yellow:'#F0B429', red:'var(--negative)' };
+    const totalVolume = tickers.reduce((sum, t) => sum + (t.converted_volume?.usd || 0), 0);
+
+    const sorted = [...tickers].sort((a, b) => {
+      let av, bv;
+      if(exchangeSortKey === 'exchange'){
+        av = (a.market?.name || '').toLowerCase();
+        bv = (b.market?.name || '').toLowerCase();
+        return exchangeSortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      if(exchangeSortKey === 'price'){ av = a.converted_last?.usd || 0; bv = b.converted_last?.usd || 0; }
+      else if(exchangeSortKey === 'spread'){ av = a.bid_ask_spread_percentage || 0; bv = b.bid_ask_spread_percentage || 0; }
+      else if(exchangeSortKey === 'updated'){ av = a.last_traded_at ? new Date(a.last_traded_at).getTime() : 0; bv = b.last_traded_at ? new Date(b.last_traded_at).getTime() : 0; }
+      else{ av = a.converted_volume?.usd || 0; bv = b.converted_volume?.usd || 0; }
+      return exchangeSortDir === 'asc' ? av - bv : bv - av;
+    });
+
+    const totalPages = Math.max(1, Math.ceil(sorted.length / EXCHANGES_PER_PAGE));
+    if(exchangePage > totalPages) exchangePage = totalPages;
+    const start = (exchangePage - 1) * EXCHANGES_PER_PAGE;
+    const pageItems = sorted.slice(start, start + EXCHANGES_PER_PAGE);
+
+    const cols = [
+      { key:'exchange', label:'Exchange' },
+      { key:'pair', label:'Pair', sortable:false },
+      { key:'price', label:'Price' },
+      { key:'spread', label:'Spread' },
+      { key:'volume', label:'24h Volume' },
+      { key:'volpct', label:'Vol %', sortable:false },
+      { key:'trust', label:'Trust', sortable:false },
+      { key:'updated', label:'Updated' },
+      { key:'trade', label:'', sortable:false },
+    ];
 
     return `
-      <div class="exchanges-table">
-        <div class="exchanges-row exchanges-row-head">
-          <span>Exchange</span>
-          <span>Pair</span>
-          <span>Price</span>
-          <span>24h Volume</span>
-          <span>Trust</span>
-          <span></span>
-        </div>
-        ${tickers.map(t => `
-          <div class="exchanges-row">
-            <span class="exchange-name">${escapeHtml(t.market?.name || 'Unknown')}</span>
-            <span class="exchange-pair">${escapeHtml(shortenIfAddress(t.base))}/${escapeHtml(shortenIfAddress(t.target))}</span>
-            <span>${formatCurrency(t.converted_last?.usd)}</span>
-            <span>${formatCompact(t.converted_volume?.usd)}</span>
-            <span><span class="trust-dot" style="background:${trustColors[t.trust_score] || 'var(--text-muted)'};"></span></span>
-            <span>${t.trade_url ? `<a href="${t.trade_url}" target="_blank" rel="noopener" class="sidebar-link-pill">Trade ↗</a>` : ''}</span>
+      <div class="exchanges-table-scroll">
+        <div class="exchanges-table">
+          <div class="exchanges-row exchanges-row-head">
+            ${cols.map(c => c.sortable === false
+              ? `<span>${c.label}</span>`
+              : `<span class="exch-sortable ${c.key === exchangeSortKey ? 'active-sort' : ''}" data-exchange-sort="${c.key}">${c.label} <span class="sort-arrow-sm">${c.key === exchangeSortKey ? (exchangeSortDir === 'asc' ? '▲' : '▼') : ''}</span></span>`
+            ).join('')}
           </div>
-        `).join('')}
+          ${pageItems.map(t => {
+            const volPct = totalVolume ? ((t.converted_volume?.usd || 0) / totalVolume * 100).toFixed(1) : '0.0';
+            const spread = t.bid_ask_spread_percentage != null ? t.bid_ask_spread_percentage.toFixed(2) + '%' : 'N/A';
+            const updated = t.last_traded_at ? formatTimeAgo(Math.floor(new Date(t.last_traded_at).getTime() / 1000)) : 'N/A';
+            return `
+              <div class="exchanges-row">
+                <span class="exchange-name">${escapeHtml(t.market?.name || 'Unknown')}</span>
+                <span class="exchange-pair">${escapeHtml(shortenIfAddress(t.base))}/${escapeHtml(shortenIfAddress(t.target))}</span>
+                <span>${formatCurrency(t.converted_last?.usd)}</span>
+                <span>${spread}</span>
+                <span>${formatCompact(t.converted_volume?.usd)}</span>
+                <span>${volPct}%</span>
+                <span><span class="trust-dot" style="background:${trustColors[t.trust_score] || 'var(--text-muted)'};"></span></span>
+                <span>${updated}</span>
+                <span>${t.trade_url ? `<a href="${t.trade_url}" target="_blank" rel="noopener" class="sidebar-link-pill">Trade ↗</a>` : ''}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+      <div class="exchanges-pagination">
+        <button class="page-btn" data-exchange-page="prev" ${exchangePage <= 1 ? 'disabled' : ''}>Prev</button>
+        <span class="exchanges-page-label">Page ${exchangePage} of ${totalPages}</span>
+        <button class="page-btn" data-exchange-page="next" ${exchangePage >= totalPages ? 'disabled' : ''}>Next</button>
       </div>
     `;
+  }
+
+  function wireUpExchangesInteractivity(){
+    const container = document.getElementById('exchangesContainer');
+    if(!container) return;
+    container.querySelectorAll('[data-exchange-sort]').forEach(el => {
+      el.addEventListener('click', () => {
+        const key = el.dataset.exchangeSort;
+        if(exchangeSortKey === key){
+          exchangeSortDir = exchangeSortDir === 'asc' ? 'desc' : 'asc';
+        }else{
+          exchangeSortKey = key;
+          exchangeSortDir = 'desc';
+        }
+        exchangePage = 1;
+        container.innerHTML = buildExchangesTable(currentExchangeTickers);
+        wireUpExchangesInteractivity();
+      });
+    });
+    container.querySelectorAll('[data-exchange-page]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.disabled) return;
+        exchangePage += btn.dataset.exchangePage === 'prev' ? -1 : 1;
+        container.innerHTML = buildExchangesTable(currentExchangeTickers);
+        wireUpExchangesInteractivity();
+      });
+    });
   }
 
   const holdersCache = {};
