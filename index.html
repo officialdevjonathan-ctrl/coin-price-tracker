@@ -896,6 +896,102 @@
     margin-top:22px;
   }
 
+  .bottom-nav{
+    display:none;
+  }
+  .menu-sheet, .menu-sheet-backdrop{
+    display:none;
+  }
+
+  @media (max-width: 760px){
+    body{
+      padding-bottom:62px;
+    }
+    .bottom-nav{
+      display:flex;
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      z-index:30;
+      background:rgba(10,13,18,0.92);
+      backdrop-filter:blur(10px);
+      -webkit-backdrop-filter:blur(10px);
+      border-top:1px solid var(--border-soft);
+      padding:8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+      justify-content:space-around;
+    }
+    .nav-item{
+      background:none;
+      border:none;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:3px;
+      color:var(--text-muted);
+      font-family:var(--sans);
+      font-size:10px;
+      cursor:pointer;
+      padding:2px 6px;
+    }
+    .nav-item svg{
+      width:21px;
+      height:21px;
+    }
+    .nav-item.active{
+      color:var(--accent);
+    }
+    .nav-item.disabled{
+      opacity:0.4;
+    }
+
+    .menu-sheet-backdrop.open{
+      display:block;
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,0.5);
+      z-index:35;
+    }
+    .menu-sheet{
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:36;
+      background:var(--surface);
+      border-top:1px solid var(--border-soft);
+      border-radius:16px 16px 0 0;
+      padding:12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
+      transform:translateY(100%);
+      transition:transform .2s ease-out;
+    }
+    .menu-sheet.open{
+      display:block;
+      transform:translateY(0);
+    }
+    .menu-sheet-item{
+      display:block;
+      width:100%;
+      background:none;
+      border:none;
+      text-align:left;
+      padding:14px 20px;
+      color:var(--text-primary);
+      font-family:var(--sans);
+      font-size:14px;
+      cursor:pointer;
+    }
+    .menu-sheet-item.disabled{
+      color:var(--text-muted);
+    }
+    .menu-sheet-login{
+      border-top:1px solid var(--border-soft);
+      margin-top:8px;
+      color:var(--accent);
+      font-weight:600;
+    }
+  }
+
   a{color:inherit;}
 </style>
 </head>
@@ -2092,6 +2188,29 @@
 
   document.getElementById('coinDetailBackBtn').addEventListener('click', hideCoinDetail);
 
+  function goHome(){
+    if(activeCoinId){
+      hideCoinDetail();
+    }
+    window.scrollTo({ top:0, behavior:'smooth' });
+    closeMenuSheet();
+  }
+
+  document.getElementById('navHome').addEventListener('click', goHome);
+  document.getElementById('menuCryptocurrencies').addEventListener('click', goHome);
+
+  function openMenuSheet(){
+    document.getElementById('menuSheet').classList.add('open');
+    document.getElementById('menuSheetBackdrop').classList.add('open');
+  }
+  function closeMenuSheet(){
+    document.getElementById('menuSheet').classList.remove('open');
+    document.getElementById('menuSheetBackdrop').classList.remove('open');
+  }
+
+  document.getElementById('navMenu').addEventListener('click', openMenuSheet);
+  document.getElementById('menuSheetBackdrop').addEventListener('click', closeMenuSheet);
+
   async function fetchData(showSkeleton){
     if(showSkeleton) renderSkeleton();
     liveDot.classList.add('fetching');
@@ -2205,6 +2324,36 @@
   countdownTimer = setInterval(updateCountdown, 1000);
 })();
 </script>
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-item active" id="navHome">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/></svg>
+    <span>Home</span>
+  </button>
+  <button class="nav-item disabled" id="navPortfolio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M4 20h16"/></svg>
+    <span>Portfolio</span>
+  </button>
+  <button class="nav-item disabled" id="navCompare">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="M16 21l4-4-4-4"/><path d="M20 17H4"/></svg>
+    <span>Compare</span>
+  </button>
+  <button class="nav-item disabled" id="navReclaimer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+    <span>Reclaimer</span>
+  </button>
+  <button class="nav-item" id="navMenu">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
+    <span>Menu</span>
+  </button>
+</nav>
+
+<div class="menu-sheet-backdrop" id="menuSheetBackdrop"></div>
+<div class="menu-sheet" id="menuSheet">
+  <button class="menu-sheet-item active" id="menuCryptocurrencies">Cryptocurrencies</button>
+  <button class="menu-sheet-item disabled">My Portfolio</button>
+  <button class="menu-sheet-item disabled">My Account</button>
+  <button class="menu-sheet-item disabled menu-sheet-login">Login</button>
+</div>
 
 </body>
 </html>
