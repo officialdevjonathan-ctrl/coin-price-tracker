@@ -2188,40 +2188,6 @@
 
   document.getElementById('coinDetailBackBtn').addEventListener('click', hideCoinDetail);
 
-  function goHome(){
-    if(activeCoinId){
-      hideCoinDetail();
-    }
-    window.scrollTo({ top:0, behavior:'smooth' });
-    closeMenuSheet();
-  }
-
-  function goHome(){
-    if(activeCoinId){
-      hideCoinDetail();
-    }
-    window.scrollTo({ top:0, behavior:'smooth' });
-    closeMenuSheet();
-  }
-
-  document.getElementById('navHome').addEventListener('click', goHome);
-  document.getElementById('menuCryptocurrencies').addEventListener('click', goHome);
-
-  function openMenuSheet(){
-    document.getElementById('menuSheet').classList.add('open');
-    document.getElementById('menuSheetBackdrop').classList.add('open');
-  }
-  function closeMenuSheet(){
-    document.getElementById('menuSheet').classList.remove('open');
-    document.getElementById('menuSheetBackdrop').classList.remove('open');
-  }
-
-  document.getElementById('navMenu').addEventListener('click', openMenuSheet);
-  document.getElementById('menuSheetBackdrop').addEventListener('click', closeMenuSheet);
-
-  document.getElementById('navMenu').addEventListener('click', openMenuSheet);
-  document.getElementById('menuSheetBackdrop').addEventListener('click', closeMenuSheet);
-
   async function fetchData(showSkeleton){
     if(showSkeleton) renderSkeleton();
     liveDot.classList.add('fetching');
